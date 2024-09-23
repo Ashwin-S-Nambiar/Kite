@@ -2,7 +2,7 @@
 
 Live: https://markdown-editor-gray-six.vercel.app/
 
-***A webpage to mimic the features of a Markdown editor. Done as part of my learning of React from [Scrimba](https://v2.scrimba.com/home).***
+***A webpage which has most of the features of a Markdown editor. Done as part of my learning of React from [Scrimba](https://v2.scrimba.com/home).***
 
 ## ⚒️ Built with:
 - HTML 5
