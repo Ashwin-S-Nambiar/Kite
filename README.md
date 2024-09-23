@@ -1,4 +1,4 @@
-# 💭 Markdown Editor
+# 📃 Markdown Editor
 
 Live: https://markdown-editor-gray-six.vercel.app/
 
