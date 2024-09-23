@@ -1,8 +1,20 @@
-# Markdown Editor
+# 💭 Markdown Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Live: 
 
-Currently, two official plugins are available:
+***A webpage to mimic the features of a Markdown editor. Done as part of my learning of React from [Scrimba](https://v2.scrimba.com/home).***
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ⚒️ Built with:
+- HTML 5
+- CSS 3
+- JavaScript
+- [React](https://reactjs.org/) - JS library
+- React-mde
+- React-split
+- Firebase
+
+## 📷 Screenshots:
+
+![markdown1](https://github.com/user-attachments/assets/59ad9368-f3a2-4efe-bc69-30604f5a2755)
+![markdown-2](https://github.com/user-attachments/assets/2e7ebd7f-f7a3-4e55-b302-5f8132e2c8e3)
+![markdown-3](https://github.com/user-attachments/assets/53a80f79-4c89-45a0-8326-50835a18a16c)
