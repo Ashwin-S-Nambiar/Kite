@@ -4,14 +4,21 @@
 
 ***A webpage which has most of the features of a Markdown editor. Done as part of my learning of React from [Scrimba](https://v2.scrimba.com/home).***
 
-## ⚒️ Built with:
+## ⚒️ Teck Stack:
 - HTML 5
 - CSS 3
 - JavaScript
 - [React](https://reactjs.org/) - JS library
+- Vite
 - React-mde
 - React-split
 - Firebase
+
+## ✨ Installation / Running
+1. Clone / Download the zip of the repo.
+2. Open the extracted folder in VS Code.
+3. In the VS Code terminal run `npm install && npm run dev`.
+4. That's it! Make the improvements and changes you wish and create PR to merge them.
 
 ## 📷 Screenshots:
 
