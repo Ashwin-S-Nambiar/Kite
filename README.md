@@ -1,4 +1,4 @@
-# Markdown Editor 📃
+# Markdown Editor
 
 <div align="center">
 
@@ -15,7 +15,7 @@ A web-based markdown editor with live preview and persistent storage.
 
 </div>
 
-## ✨ Features
+## Features
 
 - **Live Markdown Preview:** Instantly see the rendered output as you type.
 - **Split View Mode:**  Edit markdown and view the preview side-by-side.
@@ -24,7 +24,7 @@ A web-based markdown editor with live preview and persistent storage.
 - **User-Friendly UI:** Clean and minimal interface for a distraction-free writing experience.
 - **Responsive Design:** Works seamlessly on all devices, from desktops to mobile phones.
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Core Technologies
 
@@ -43,7 +43,7 @@ A web-based markdown editor with live preview and persistent storage.
 - **CSS3:** For styling and layout.
 - **JavaScript:** For core logic and interactivity.
 
-## 🚀 Installation
+## Installation
 
 1. **Clone the Repository:**
 
@@ -66,7 +66,7 @@ A web-based markdown editor with live preview and persistent storage.
 
 **The app will be available at `http://localhost:5173`.**
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome\! If you'd like to enhance the Markdown Editor, follow these steps:
 
@@ -91,7 +91,7 @@ Contributions are welcome\! If you'd like to enhance the Markdown Editor, follow
 
 5.  **Open a Pull Request**
 
-## 📸 Screenshots
+## Screenshots
 
 <div align="center">
 
@@ -109,7 +109,7 @@ Contributions are welcome\! If you'd like to enhance the Markdown Editor, follow
 
 </div>
 
-## 🌍 Live
+## Live
 
 <div align="center">
 
@@ -117,7 +117,7 @@ Contributions are welcome\! If you'd like to enhance the Markdown Editor, follow
 
 </div>
 
-## 👤 Author
+## Author
 
 ### Ashwin S Nambiar
 - Portfolio: [ashwin.co.in](https://ashwin.co.in)
