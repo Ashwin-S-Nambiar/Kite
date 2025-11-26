@@ -117,12 +117,6 @@ Contributions are welcome\! If you'd like to enhance the Markdown Editor, follow
 
 </div>
 
-## Author
-
-### Ashwin S Nambiar
-- Portfolio: [ashwin.co.in](https://ashwin.co.in)
-- GitHub: [@Ashwin-S-Nambiar](https://github.com/Ashwin-S-Nambiar)
-
 -----
 
 <div align="center">
