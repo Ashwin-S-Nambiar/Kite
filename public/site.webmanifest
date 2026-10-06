@@ -1,0 +1,19 @@
+{
+  "name": "Kite",
+  "short_name": "Kite",
+  "description": "Race through Wikipedia, checkpoint to checkpoint.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfcf8",
+  "theme_color": "#fcfcf8",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Today's course", "url": "/today", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Timed run", "url": "/timed", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
