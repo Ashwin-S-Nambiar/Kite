@@ -1,0 +1,33 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/today", "destination": "/index.html" },
+    { "source": "/timed", "destination": "/index.html" },
+    { "source": "/c/:id", "destination": "/index.html" },
+    { "source": "/c/:id/run", "destination": "/index.html" },
+    { "source": "/c/:id/card", "destination": "/index.html" }
+  ],
+  "redirects": [
+    { "source": "/wiki/:path*", "destination": "/", "permanent": false },
+    { "source": "/trail/:path*", "destination": "/", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "missing": [{ "type": "host", "value": "kite\\.ashwin\\.co\\.in" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/c/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
+    },
+    {
+      "source": "/fonts/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ]
+}
