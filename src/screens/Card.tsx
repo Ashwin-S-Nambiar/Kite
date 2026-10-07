@@ -4,7 +4,7 @@ import CourseMap from '../components/CourseMap.tsx';
 import Icon from '../components/Icon.tsx';
 import PunchCard, { type Box } from '../components/PunchCard.tsx';
 import Sheet from '../components/Sheet.tsx';
-import { clock, dateLabel, newSeed } from '../lib/course.ts';
+import { clicks, clock, dateLabel, newSeed } from '../lib/course.ts';
 import { haptic } from '../lib/haptics.ts';
 import { navigate, param } from '../lib/route.ts';
 import {
@@ -52,7 +52,9 @@ export default function Card({ plan: p }: { plan: Plan }) {
   const run = useRun(p.id);
   const res: Result | null = results[p.id] ?? null;
   const [routeOpen, setRouteOpen] = useState(false);
-  const wide = useMedia('(min-width: 900px)');
+  const wide = useMedia(
+    '(min-width: 900px), (orientation: landscape) and (max-height: 520px)',
+  );
   const dock = useDock();
   const rival = decodeRival(param('vs'));
 
@@ -87,7 +89,7 @@ export default function Card({ plan: p }: { plan: Plan }) {
     p.kind === 'course'
       ? [
           `Kite${res.day ? ` · ${dateLabel(res.day)}` : ''}`,
-          `${name} · ${res.clicks} clicks (${shortest}) · ${clock(res.time)}`,
+          `${name} · ${clicks(res.clicks)} (${shortest}) · ${clock(res.time)}`,
           (p.course?.legs ?? [])
             .map(
               (l, i) =>
@@ -97,7 +99,7 @@ export default function Card({ plan: p }: { plan: Plan }) {
         ]
       : [
           'Kite · Timed run',
-          `${res.punched.length} of ${p.points.length - 1} checkpoints · ${res.clicks} clicks · ${clock(res.time)}`,
+          `${res.punched.length} of ${p.points.length - 1} checkpoints · ${clicks(res.clicks)} · ${clock(res.time)}`,
         ];
   const text = lines.join('\n');
   const url = `${ORIGIN}/c/${p.id}`;
@@ -209,7 +211,7 @@ export default function Card({ plan: p }: { plan: Plan }) {
           {p.kind === 'course' ? (
             <>
               <span className="num font-semibold text-[24px] leading-none">
-                {res.clicks} clicks
+                {clicks(res.clicks)}
               </span>
               <span className="text-[13px] text-pencil">
                 shortest is {shortest}
@@ -221,7 +223,7 @@ export default function Card({ plan: p }: { plan: Plan }) {
                 {res.punched.length} of {p.points.length - 1}
               </span>
               <span className="text-[13px] text-pencil">
-                {res.clicks} clicks
+                {clicks(res.clicks)}
               </span>
             </>
           )}
@@ -265,7 +267,7 @@ export default function Card({ plan: p }: { plan: Plan }) {
           className="btn press min-h-13"
           onClick={() =>
             share(
-              `Race me on Kite: ${name}. My time: ${res.clicks} clicks, ${clock(res.time)}.`,
+              `Race me on Kite: ${name}. My time: ${clicks(res.clicks)}, ${clock(res.time)}.`,
               raceUrl,
             )
           }
@@ -360,7 +362,7 @@ export default function Card({ plan: p }: { plan: Plan }) {
 
   if (wide)
     return (
-      <main className="grid h-dvh grid-cols-[minmax(0,1.2fr)_minmax(440px,560px)] overflow-hidden">
+      <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.2fr)_minmax(440px,560px)] overflow-hidden land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="relative border-ink border-r-[1.5px]">
           <CourseMap
             seed={p.id}
@@ -391,10 +393,15 @@ export default function Card({ plan: p }: { plan: Plan }) {
             pad={60}
           />
         </div>
-        <div className="scroller flex flex-col gap-5 px-10 pt-[calc(20px+var(--sat))] pb-8">
-          {head}
-          {body}
-          <div ref={dock} className="mt-auto">
+        <div className="flex min-h-0 flex-col">
+          <div className="scroller flex min-h-0 flex-1 flex-col gap-5 px-10 pt-[calc(20px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
+            {head}
+            {body}
+          </div>
+          <div
+            ref={dock}
+            className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))]"
+          >
             {actions}
           </div>
         </div>
@@ -404,13 +411,13 @@ export default function Card({ plan: p }: { plan: Plan }) {
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
-      <div className="scroller flex min-h-0 flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-[560px] tab:pt-10">
+      <div className="scroller flex min-h-0 flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:pt-10">
         {head}
         {body}
       </div>
       <div
         ref={dock}
-        className="flex-none px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-[560px] tab:pb-10"
+        className="flex-none px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:pb-10"
       >
         {actions}
       </div>

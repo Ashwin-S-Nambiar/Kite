@@ -35,6 +35,7 @@ export default function Sheet({
   const body = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
   const closing = useRef(false);
+  const openedAt = useRef(0);
   const pushed = useRef(false);
   const cb = useRef(onClose);
   cb.current = onClose;
@@ -104,6 +105,7 @@ export default function Sheet({
     if (!d || !p || !s) return;
     if (open && !d.open) {
       opener.current = document.activeElement;
+      openedAt.current = performance.now();
       closing.current = false;
       d.showModal();
       if (sound) sfx.rustle();
@@ -264,7 +266,9 @@ export default function Sheet({
       <div
         ref={scrim}
         className="fixed inset-0 bg-[rgba(22,22,22,0.32)]"
-        onClick={requestClose}
+        onClick={() => {
+          if (performance.now() - openedAt.current > 350) requestClose();
+        }}
         aria-hidden="true"
       />
       <div className="pointer-events-none fixed inset-0 flex items-end justify-center tab:items-center tab:p-6">

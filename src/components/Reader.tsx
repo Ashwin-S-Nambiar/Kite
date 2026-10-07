@@ -77,6 +77,9 @@ export default function Reader({
       clearTimeout(timer);
       start = null;
     };
+    const touchEnd = (e: TouchEvent) => {
+      if (fired && e.cancelable) e.preventDefault();
+    };
     const click = (e: MouseEvent) => {
       const a = linkOf(e.target);
       if (!a) return;
@@ -124,6 +127,7 @@ export default function Reader({
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', clear);
+    el.addEventListener('touchend', touchEnd, { passive: false });
     el.addEventListener('click', click);
     el.addEventListener('contextmenu', context);
     el.addEventListener('pointerover', over);
@@ -137,6 +141,7 @@ export default function Reader({
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
       el.removeEventListener('pointercancel', clear);
+      el.removeEventListener('touchend', touchEnd);
       el.removeEventListener('click', click);
       el.removeEventListener('contextmenu', context);
       el.removeEventListener('pointerover', over);

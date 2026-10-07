@@ -47,14 +47,23 @@ export function navigate(path: string, replace = false) {
     notify();
   };
   const doc = document as Document & {
-    startViewTransition?: (fn: () => void) => unknown;
+    startViewTransition?: (fn: () => void) => {
+      ready: Promise<void>;
+      finished: Promise<void>;
+      updateCallbackDone: Promise<void>;
+    };
   };
   if (
-    doc.startViewTransition &&
-    !matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
-    doc.startViewTransition(go);
-  else go();
+    !doc.startViewTransition ||
+    matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    go();
+    return;
+  }
+  const t = doc.startViewTransition(go);
+  t.ready.catch(() => {});
+  t.finished.catch(() => {});
+  t.updateCallbackDone.catch(() => {});
 }
 
 export function useRoute() {

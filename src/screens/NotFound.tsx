@@ -50,7 +50,7 @@ export default function NotFound() {
           ?
         </text>
       </svg>
-      <div className="relative mt-auto flex flex-col gap-3 px-5 pb-[calc(28px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-[520px] tab:pb-16">
+      <div className="relative mt-auto flex flex-col gap-3 px-5 pb-[calc(28px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-130 tab:pb-16">
         <span className="label">Checkpoint</span>
         <span className="stencil text-[96px] text-kite-text leading-[0.8]">
           404

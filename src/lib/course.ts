@@ -153,3 +153,7 @@ export function pins(key: string, n = 9) {
   }
   return out;
 }
+
+export function clicks(n: number) {
+  return `${n} click${n === 1 ? '' : 's'}`;
+}

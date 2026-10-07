@@ -22,7 +22,7 @@ export default function Toaster() {
         <div
           key={t.id}
           ref={el}
-          className="fade-in pointer-events-auto max-w-[420px] touch-pan-y border-[1.5px] border-ink bg-ink px-4 py-3 font-medium text-[15px] text-paper"
+          className="fade-in pointer-events-auto max-w-105 touch-pan-y border-[1.5px] border-ink bg-ink px-4 py-3 font-medium text-[15px] text-paper"
           onPointerDown={(e) => {
             x0.current = e.clientX;
             e.currentTarget.setPointerCapture(e.pointerId);
