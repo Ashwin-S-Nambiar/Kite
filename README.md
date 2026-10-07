@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://kite.ashwin.co.in"><strong>kite.ashwin.co.in</strong></a>
   &nbsp;·&nbsp;
-  <a href="#how-the-courses-are-made">how the courses are made</a>
+  <a href="#what-it-does">what it does</a>
   &nbsp;·&nbsp;
   <a href="#the-design">the design</a>
   &nbsp;·&nbsp;
@@ -88,21 +88,6 @@ the page is an orienteering map and a control card.
 - **on a phone** the map is a strip at the top and your card is a sheet you pull up from the bottom. landscape phones put the map on the left. tablets add the course list beside the article. desktops give the map half the screen.
 - **nothing jumps.** layout shift measures 0 on load and through a whole course.
 
-<details>
-<summary><strong>more screenshots</strong></summary>
-
-<br>
-
-![the finished card on desktop: the time in big stencil numbers, the punched card, and a table of legs with clicks, shortest and time](./docs/screenshots/Kite-5.webp)
-
-![a link preview on a phone: the first line of bicycle wheel, with stay and go to bicycle wheel buttons](./docs/screenshots/Kite-6.webp)
-
-![a timed run on a phone: the countdown, five checkpoints to punch in any order, and the article below](./docs/screenshots/Kite-7.webp)
-
-![the 404: checkpoint 404, this checkpoint isn't on the map](./docs/screenshots/Kite-8.webp)
-
-</details>
-
 ## the stack
 
 | layer | choices |
@@ -140,6 +125,10 @@ npm run typecheck
 npm test          # the link rules
 ```
 
+### hosting and indexing
+
+production indexing is configured for `kite.ashwin.co.in`; vercel sends `noindex, nofollow` on other hosts, including preview deployments. `public/robots.txt` points to the sitemap in `public/sitemap.xml`, and course and card urls under `/c/` are marked `noindex`. if you deploy under another domain, update the indexing headers and site urls along with it.
+
 ## the shape of it
 
 ```
@@ -158,16 +147,37 @@ src/
   screens/          home, briefing, run, card, 404
 ```
 
-## credits
+## known rough edges
+
+- **shortest routes can drift.** they were worked out from the articles when the course was made. articles change, so a leg can end up shorter, or rarely longer, than it says.
+- **60 courses, then it repeats.** after that the daily course goes round again from the start until `npm run courses` is run for more.
+- **no shared leaderboard.** results stay on your device, and race a friend works by link.
+- **no live races.** racing in a room, like thewikigame, would need a realtime server.
+- **long tables on phones.** a page with a lot of tables can be long to scroll. find on page helps.
+
+<details>
+<summary><strong>more screenshots</strong></summary>
+
+<br>
+
+![the finished card on desktop: the time in big stencil numbers, the punched card, and a table of legs with clicks, shortest and time](./docs/screenshots/Kite-5.webp)
+
+<p align="center">
+  <img src="./docs/screenshots/Kite-6.webp" width="32%" alt="a link preview on a phone: the first line of bicycle wheel, with stay and go to bicycle wheel buttons">
+  &nbsp;
+  <img src="./docs/screenshots/Kite-7.webp" width="32%" alt="a timed run on a phone: the countdown, five checkpoints to punch in any order, and the article below">
+  &nbsp;
+  <img src="./docs/screenshots/Kite-8.webp" width="32%" alt="the 404 page on a phone: checkpoint 404, this checkpoint isn't on the map">
+</p>
+
+</details>
+
+## credit
 
 - articles from [wikipedia](https://en.wikipedia.org), under [cc by-sa 4.0](https://creativecommons.org/licenses/by-sa/4.0/), restyled for the game. kite isn't made by or connected to the wikimedia foundation.
 - [familjen grotesk](https://github.com/Familjen-Sthlm/Familjen-Grotesk) by familjen sthlm, under the sil open font license.
 - [bespoke stencil](https://www.fontshare.com/fonts/bespoke-stencil) by indian type foundry, under the itf free font license.
 
-## known rough edges
+---
 
-- the shortest routes were worked out from the articles when the course was made. articles change, so a leg can end up shorter, or rarely longer, than it says.
-- `courses.json` holds 60 courses. after that the daily course goes round again from the start until the script is run for more.
-- there's no shared leaderboard. results stay on your device, and race a friend works by link.
-- live races in a room, like thewikigame, would need a realtime server, so they aren't here.
-- a page with a lot of tables can be long to scroll on a phone. find on page helps.
+[kite.ashwin.co.in](https://kite.ashwin.co.in) · [ashwin.co.in](https://ashwin.co.in) · [notes](https://notes.ashwin.co.in) · [x](https://x.com/ashwinnambiar11) · [github](https://github.com/Ashwin-S-Nambiar)
