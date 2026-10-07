@@ -533,7 +533,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     />
   );
   const clicksLine = (
-    <span className="num w-[4.75rem] flex-none text-left text-[12px] text-pencil leading-tight">
+    <span className="num w-19 flex-none text-left text-[12px] text-pencil leading-tight">
       {r.clicks} click{r.clicks === 1 ? '' : 's'}
       <br />
       {clock(p.kind === 'timed' ? left : time).padStart(5, '\u2007')}{' '}
