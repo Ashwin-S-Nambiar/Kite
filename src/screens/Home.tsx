@@ -4,8 +4,10 @@ import CourseMap from '../components/CourseMap.tsx';
 import Icon, { Wordmark } from '../components/Icon.tsx';
 import { Pins } from '../components/PunchCard.tsx';
 import Sheet from '../components/Sheet.tsx';
+import { useOnline } from '../hooks/useOnline.ts';
 import {
   byId,
+  clicks,
   clock,
   daily,
   dateLabel,
@@ -47,8 +49,11 @@ export default function Home() {
   const [friends, setFriends] = useState(false);
   const [cards, setCards] = useState(false);
   const [about, setAbout] = useState(false);
-  const wide = useMedia('(min-width: 900px)');
+  const wide = useMedia(
+    '(min-width: 900px), (orientation: landscape) and (max-height: 520px)',
+  );
   const dock = useDock();
+  const online = useOnline();
   const first = course.points[0];
   const last = course.points[course.points.length - 1];
 
@@ -85,9 +90,9 @@ export default function Home() {
       </span>
       <span className="text-[14px] text-pencil">
         {done
-          ? `Finished in ${done.clicks} clicks, ${clock(done.time)}. Shortest route: ${course.shortest}.`
+          ? `Finished in ${clicks(done.clicks)}, ${clock(done.time)}. Shortest route: ${course.shortest}.`
           : run && !run.done
-            ? `In progress · leg ${run.leg + 1} of ${course.legs.length}, ${run.clicks} clicks so far.`
+            ? `In progress · leg ${run.leg + 1} of ${course.legs.length}, ${clicks(run.clicks)} so far.`
             : `Two checkpoints on the way. Shortest route: ${course.shortest} clicks.`}
       </span>
     </div>
@@ -182,7 +187,15 @@ export default function Home() {
         <Wordmark />
         <span className="sr-only">Kite</span>
       </h1>
-      <div className="flex">
+      <div className="flex items-center">
+        {!online && (
+          <span
+            className="mr-1 border border-ink px-2 py-0.5 font-medium text-[12px]"
+            role="status"
+          >
+            Offline
+          </span>
+        )}
         <button
           type="button"
           className="press flex h-11 w-11 items-center justify-center"
@@ -231,16 +244,21 @@ export default function Home() {
   return (
     <>
       {wide ? (
-        <main className="grid h-dvh grid-cols-[minmax(0,1.25fr)_minmax(420px,520px)] overflow-hidden">
+        <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.25fr)_minmax(420px,520px)] overflow-hidden land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="relative border-ink border-r-[1.5px]">{map}</div>
-          <div className="scroller flex flex-col gap-6 px-10 pt-[calc(28px+var(--sat))] pb-8">
-            {header}
-            <div className="border-[1.5px] border-ink bg-white">
-              {todayCard}
+          <div className="flex min-h-0 flex-col">
+            <div className="scroller flex min-h-0 flex-1 flex-col gap-6 px-10 pt-[calc(28px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
+              {header}
+              <div className="border-[1.5px] border-ink bg-white">
+                {todayCard}
+              </div>
+              {weekStrip}
+              {modes}
             </div>
-            {weekStrip}
-            {modes}
-            <div ref={dock} className="mt-auto flex flex-col gap-2.5">
+            <div
+              ref={dock}
+              className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))] flex flex-col gap-2.5"
+            >
               {cta}
               <Footer />
             </div>
@@ -248,7 +266,7 @@ export default function Home() {
         </main>
       ) : (
         <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
-          <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] tab:mx-auto tab:w-full tab:max-w-[560px] tab:gap-6 tab:pt-10">
+          <div className="scroller flex min-h-0 flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] tab:mx-auto tab:w-full tab:max-w-140 tab:gap-6 tab:pt-10">
             <div className="-mr-2">{header}</div>
             <div className="border-[1.5px] border-ink bg-white">
               <div className="relative h-[clamp(110px,22dvh,200px)] border-ink border-b-[1.5px]">
@@ -261,7 +279,7 @@ export default function Home() {
           </div>
           <div
             ref={dock}
-            className="flex flex-none flex-col gap-2.5 border-rule border-t bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-[560px] tab:border-0 tab:pb-10"
+            className="flex flex-none flex-col gap-2.5 border-rule border-t bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:border-0 tab:pb-10"
           >
             {cta}
             <Footer />
@@ -381,7 +399,7 @@ function CardList({ onOpen }: { onOpen: (id: string) => void }) {
                   {r.kind === 'timed'
                     ? ` · ${r.punched.length} of 5 checkpoints`
                     : c
-                      ? ` · ${r.clicks} clicks (${c.shortest})`
+                      ? ` · ${clicks(r.clicks)} (${c.shortest})`
                       : ''}
                 </span>
               </span>

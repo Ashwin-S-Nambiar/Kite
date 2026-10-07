@@ -116,7 +116,7 @@ export function CourseRows({
         return (
           <li
             key={p.key}
-            className={`grid grid-cols-[28px_1fr_auto_56px] items-center gap-2 border-rule border-b last:border-b-0 ${compact ? 'min-h-10' : 'min-h-11'} ${hot ? '-mx-3 bg-kite-wash px-3' : ''}`}
+            className={`grid grid-cols-[28px_1fr_34px_56px] items-center gap-2 border-rule border-b last:border-b-0 ${compact ? 'min-h-10' : 'min-h-11'} ${hot ? 'relative isolate before:absolute before:inset-y-0 before:-inset-x-3 before:-z-10 before:bg-kite-wash' : ''}`}
           >
             <span
               className={`text-[14px] font-semibold ${hot ? 'text-kite-text' : ''}`}
@@ -134,7 +134,7 @@ export function CourseRows({
             <span className="stencil text-[13px] text-kite-text">
               {i > 0 && !last ? code(p.key) : ''}
             </span>
-            <span className="num text-right text-[13px] text-pencil">
+            <span className="num text-left text-[13px] text-pencil">
               {i === 0
                 ? 'start'
                 : t != null
@@ -178,7 +178,7 @@ export function NextBar({
       </div>
       {codeKey && (
         <span
-          className={`stencil text-kite-text ${big ? 'text-[30px]' : 'text-[24px]'}`}
+          className={`stencil inline-block text-left text-kite-text ${big ? 'w-[1.7em] text-[30px]' : 'w-[1.7em] text-[24px]'}`}
         >
           {code(codeKey)}
         </span>

@@ -2,7 +2,14 @@ import { useEffect } from 'react';
 import { Glyph, useDock, useMedia, usePeek } from '../components/Bits.tsx';
 import CourseMap from '../components/CourseMap.tsx';
 import Icon from '../components/Icon.tsx';
-import { clock, code, daily, dayKey, type Point } from '../lib/course.ts';
+import {
+  clicks,
+  clock,
+  code,
+  daily,
+  dayKey,
+  type Point,
+} from '../lib/course.ts';
 import { navigate, param } from '../lib/route.ts';
 import {
   decodeRival,
@@ -11,6 +18,7 @@ import {
   useResults,
   useRun,
 } from '../lib/run.ts';
+import { article } from '../lib/wiki.ts';
 import { Rules } from './About.tsx';
 
 function Row({
@@ -55,7 +63,9 @@ export default function Brief({ plan: p }: { plan: Plan }) {
   const result = results[p.id] ?? null;
   const rival = decodeRival(param('vs'));
   const isDaily = p.kind === 'course' && daily(dayKey()).id === p.id;
-  const wide = useMedia('(min-width: 900px)');
+  const wide = useMedia(
+    '(min-width: 900px), (orientation: landscape) and (max-height: 520px)',
+  );
   const dock = useDock();
   const first = p.points[0];
   const last = p.points[p.points.length - 1];
@@ -65,6 +75,10 @@ export default function Brief({ plan: p }: { plan: Plan }) {
   useEffect(() => {
     document.title = `${name} · Kite`;
   }, [name]);
+
+  useEffect(() => {
+    if (first) article(first.key).catch(() => {});
+  }, [first]);
 
   const go = () => navigate(`/c/${p.id}/run`);
   const again = () => {
@@ -123,7 +137,7 @@ export default function Brief({ plan: p }: { plan: Plan }) {
             className="btn btn-kite press w-full"
             onClick={go}
           >
-            Carry on · {run.clicks} clicks, {clock(run.elapsed)}
+            Carry on · {clicks(run.clicks)}, {clock(run.elapsed)}
           </button>
           <button
             type="button"
@@ -186,7 +200,7 @@ export default function Brief({ plan: p }: { plan: Plan }) {
           </span>
           They finished in{' '}
           <b className="num font-semibold">
-            {rival.c.reduce((a, b) => a + b, 0)} clicks
+            {clicks(rival.c.reduce((a, b) => a + b, 0))}
           </b>
           ,{' '}
           <b className="num font-semibold">
@@ -224,7 +238,7 @@ export default function Brief({ plan: p }: { plan: Plan }) {
 
   if (wide)
     return (
-      <main className="grid h-dvh grid-cols-[minmax(0,1.2fr)_minmax(440px,560px)] overflow-hidden">
+      <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.2fr)_minmax(440px,560px)] overflow-hidden land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="relative border-ink border-r-[1.5px]">
           <CourseMap
             seed={p.id}
@@ -238,11 +252,16 @@ export default function Brief({ plan: p }: { plan: Plan }) {
             pad={60}
           />
         </div>
-        <div className="scroller flex flex-col gap-5 px-10 pt-[calc(24px+var(--sat))] pb-8">
-          {top}
-          <div className="border-ink border-t-[1.5px]">{list}</div>
-          {rules}
-          <div ref={dock} className="mt-auto">
+        <div className="flex min-h-0 flex-col">
+          <div className="scroller flex min-h-0 flex-1 flex-col gap-5 px-10 pt-[calc(24px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
+            {top}
+            <div className="border-ink border-t-[1.5px]">{list}</div>
+            {rules}
+          </div>
+          <div
+            ref={dock}
+            className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))]"
+          >
             {actions}
           </div>
         </div>

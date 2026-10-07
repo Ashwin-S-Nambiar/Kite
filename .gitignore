@@ -26,3 +26,5 @@ dist-ssr
 
 # Bespoke Stencil (ITF Free Font License): self-hosting allowed, public repositories not. Fetched from Fontshare at build time by scripts/fonts.mjs
 public/fonts/stencil/
+
+.course-cache/

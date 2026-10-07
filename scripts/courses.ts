@@ -207,7 +207,14 @@ async function gate() {
 
 async function get(url: string, tries = 4): Promise<Response> {
   await gate();
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { 'User-Agent': UA } });
+  } catch (e) {
+    if (tries <= 0) throw e;
+    await new Promise((r) => setTimeout(r, 5000));
+    return get(url, tries - 1);
+  }
   if ((res.status === 429 || res.status >= 500) && tries > 0) {
     const after = Number(res.headers.get('retry-after') ?? 5);
     await new Promise((r) => setTimeout(r, Math.max(5, after) * 1000));
@@ -232,9 +239,18 @@ async function cached<T>(name: string, run: () => Promise<T>): Promise<T> {
 
 function page(key: string): Promise<Page | null> {
   return cached(`body2:${key}`, async () => {
-    const res = await get(`${REST}/${encodeURIComponent(key)}/html`);
-    if (!res.ok) return null;
-    const { document } = parseHTML(await res.text());
+    let text = '';
+    for (let tries = 3; ; tries--) {
+      const res = await get(`${REST}/${encodeURIComponent(key)}/html`);
+      if (!res.ok) return null;
+      try {
+        text = await res.text();
+        break;
+      } catch (e) {
+        if (tries <= 0) throw e;
+      }
+    }
+    const { document } = parseHTML(text);
     const canon =
       canonicalOf(document as unknown as Document) ?? normalise(key);
     const title = (

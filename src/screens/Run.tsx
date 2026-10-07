@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   CourseRows,
   Credit,
@@ -16,7 +22,7 @@ import PunchCard, { type Box } from '../components/PunchCard.tsx';
 import Reader, { type LinkRef } from '../components/Reader.tsx';
 import Sheet from '../components/Sheet.tsx';
 import { useArticle, useDelayed } from '../hooks/useArticle.ts';
-import { clock, code, spoken } from '../lib/course.ts';
+import { clicks, clock, code, spoken } from '../lib/course.ts';
 import { haptic } from '../lib/haptics.ts';
 import { navigate } from '../lib/route.ts';
 import {
@@ -224,6 +230,12 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     };
   }, [p.kind, r.done]);
 
+  useEffect(() => {
+    const off = () => announce('You’re offline. Reconnect to carry on.', 4000);
+    addEventListener('offline', off);
+    return () => removeEventListener('offline', off);
+  }, []);
+
   const latest = useRef(r);
   latest.current = r;
 
@@ -237,7 +249,8 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
   }, [id]);
 
   useEffect(() => {
-    history.pushState({ guard: id }, '');
+    if ((history.state as { guard?: string } | null)?.guard !== id)
+      history.pushState({ guard: id }, '');
     const onPop = (e: PopStateEvent) => {
       if ((e.state as { guard?: string } | null)?.guard === id) return;
       if (location.pathname !== `/c/${id}/run`) return;
@@ -264,10 +277,11 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     [id],
   );
 
-  const openFind = useCallback(() => {
-    setFindOpen(true);
-    requestAnimationFrame(() => findInput.current?.focus());
-  }, []);
+  const openFind = useCallback(() => setFindOpen(true), []);
+
+  useLayoutEffect(() => {
+    if (findOpen) findInput.current?.focus();
+  }, [findOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -288,7 +302,8 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
       } else if (e.key === 'm' || e.key === 'M') setMapOpen(true);
       else if (e.key === '?') setKeysOpen(true);
       else if (e.key === 's' || e.key === 'S') soundStore.set((v) => !v);
-      else if (e.key === 'Enter' && hover) follow(hover.link);
+      else if (e.key === 'Enter' && hover && !t.closest('a, button'))
+        follow(hover.link);
       else if (e.key === 'Escape') setHover(null);
     };
     addEventListener('keydown', onKey);
@@ -518,10 +533,10 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     />
   );
   const clicksLine = (
-    <span className="num text-right text-[12px] text-pencil leading-tight">
+    <span className="num w-[4.75rem] flex-none text-left text-[12px] text-pencil leading-tight">
       {r.clicks} click{r.clicks === 1 ? '' : 's'}
       <br />
-      {clock(p.kind === 'timed' ? left : time)}{' '}
+      {clock(p.kind === 'timed' ? left : time).padStart(5, '\u2007')}{' '}
       {p.kind === 'timed' ? 'left' : 'total'}
     </span>
   );
@@ -627,7 +642,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     );
   } else if (land) {
     layout = (
-      <div className="grid h-dvh grid-cols-[minmax(260px,38%)_1fr] overflow-hidden">
+      <div className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(260px,38%)_1fr] overflow-hidden">
         <div className="relative border-ink border-r-[1.5px] pl-(--sal)">
           {map('absolute inset-0')}
           {legChip}
@@ -672,7 +687,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     );
   } else if (!desk) {
     layout = (
-      <div className="grid h-dvh grid-cols-[300px_1fr] overflow-hidden">
+      <div className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[300px_1fr] overflow-hidden">
         <aside className="flex min-h-0 flex-col border-ink border-r-[1.5px]">
           <div className="flex items-center justify-between px-4 pt-[calc(20px+var(--sat))] pb-3">
             <a
@@ -713,8 +728,9 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
           <div className="flex flex-col gap-2 border-ink border-t-[1.5px] px-4 pt-3.5 pb-[calc(20px+var(--sab))]">
             <div className="flex justify-between">
               <span className="label">Your card</span>
-              <span className="num text-[12px] text-pencil">
-                {r.clicks} clicks · {clock(p.kind === 'timed' ? left : time)}
+              <span className="num w-28 text-left text-[12px] text-pencil">
+                {clicks(r.clicks)} ·{' '}
+                {clock(p.kind === 'timed' ? left : time).padStart(5, '\u2007')}
               </span>
             </div>
             {card}
@@ -734,7 +750,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     );
   } else {
     layout = (
-      <div className="grid h-dvh grid-cols-[minmax(0,1.1fr)_minmax(560px,1fr)] overflow-hidden wide:grid-cols-[minmax(0,1.6fr)_minmax(640px,1fr)]">
+      <div className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.1fr)_minmax(560px,1fr)] overflow-hidden wide:grid-cols-[minmax(0,1.6fr)_minmax(640px,1fr)]">
         <div className="relative border-ink border-r-[1.5px]">
           {map('absolute inset-0')}
           <div className="absolute top-6 left-6 w-85 border-[1.5px] border-ink bg-paper">
@@ -770,8 +786,9 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
           <div className="absolute bottom-6 left-6 flex w-85 flex-col gap-2 border-[1.5px] border-ink bg-paper p-2.5">
             <div className="flex justify-between">
               <span className="label">Your card</span>
-              <span className="num text-[12px] text-pencil">
-                {r.clicks} clicks · {clock(p.kind === 'timed' ? left : time)}
+              <span className="num w-28 text-left text-[12px] text-pencil">
+                {clicks(r.clicks)} ·{' '}
+                {clock(p.kind === 'timed' ? left : time).padStart(5, '\u2007')}
               </span>
             </div>
             {card}
@@ -1053,7 +1070,7 @@ function TimedHead({
           >
             {clock(left)}
           </span>
-          <span className="text-[13px] text-pencil">left of 10:00</span>
+          <span className="mt-1.5 text-[13px] text-pencil">left of 10:00</span>
         </div>
         <div className="flex items-end gap-2">
           {!phone && (
