@@ -94,7 +94,7 @@ export default function Brief({ plan: p }: { plan: Plan }) {
   const list = (
     <div className="relative">
       <div
-        className="absolute top-8 bottom-8 left-[17px] w-[2.5px] bg-kite"
+        className="absolute top-8 bottom-8 left-4.25 w-[2.5px] bg-kite"
         style={{ display: p.kind === 'course' ? 'block' : 'none' }}
         aria-hidden="true"
       />
@@ -270,14 +270,14 @@ export default function Brief({ plan: p }: { plan: Plan }) {
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
-      <div className="scroller flex min-h-0 flex-1 flex-col gap-3 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-[560px] tab:pt-10">
+      <div className="scroller flex min-h-0 flex-1 flex-col gap-3 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:pt-10">
         {top}
         <div className="border-ink border-t-[1.5px]">{list}</div>
         {rules}
       </div>
       <div
         ref={dock}
-        className="flex-none bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-[560px] tab:pb-10"
+        className="flex-none bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:pb-10"
       >
         {actions}
       </div>
