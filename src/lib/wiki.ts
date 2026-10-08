@@ -12,6 +12,27 @@ export type Article = { key: string; title: string; html: string };
 export type Summary = { key: string; title: string; extract: string };
 
 const cache = new Map<string, Promise<unknown>>();
+const articles = new Map<string, Article>();
+
+export function cachedArticle(key: string) {
+  return articles.get(key) ?? null;
+}
+
+export function prefetchArticle(key: string) {
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  if (
+    document.hidden ||
+    !navigator.onLine ||
+    connection?.saveData ||
+    ['slow-2g', '2g'].includes(connection?.effectiveType ?? '')
+  )
+    return;
+  article(key).catch(() => {});
+}
 
 function memo<T>(key: string, run: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
@@ -106,10 +127,15 @@ function transform(requested: string, source: string): Article {
 }
 
 export function article(key: string, fresh = false) {
-  if (fresh) cache.delete(`a:${key}`);
+  if (fresh) {
+    cache.delete(`a:${key}`);
+    articles.delete(key);
+  }
   return memo(`a:${key}`, async () => {
     const res = await request(`${PAGE}/${encodeURIComponent(key)}/html`);
     const a = transform(key, await res.text());
+    articles.set(key, a);
+    articles.set(a.key, a);
     if (a.key !== key && !cache.has(`a:${a.key}`))
       cache.set(`a:${a.key}`, Promise.resolve(a));
     return a;

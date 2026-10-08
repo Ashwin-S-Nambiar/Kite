@@ -17,18 +17,23 @@ import {
 } from '../components/Bits.tsx';
 import CourseMap, { type MapLeg } from '../components/CourseMap.tsx';
 import Drawer from '../components/Drawer.tsx';
+import FindBar from '../components/FindBar.tsx';
 import Icon, { Flag, Wordmark } from '../components/Icon.tsx';
+import LinkPreview from '../components/LinkPreview.tsx';
 import PunchCard, { type Box } from '../components/PunchCard.tsx';
 import Reader, { type LinkRef } from '../components/Reader.tsx';
+import RunOptions from '../components/RunOptions.tsx';
 import Sheet from '../components/Sheet.tsx';
-import { useArticle, useDelayed } from '../hooks/useArticle.ts';
+import { useArticle } from '../hooks/useArticle.ts';
 import { clicks, clock, code, spoken } from '../lib/course.ts';
+import { normaliseFind } from '../lib/find.ts';
 import { haptic } from '../lib/haptics.ts';
 import { navigate } from '../lib/route.ts';
 import {
   arrive,
   back,
   canBack,
+  discard,
   elapsed,
   go,
   hold,
@@ -45,7 +50,12 @@ import {
 import { sfx, soundStore } from '../lib/sound.ts';
 import { useStore } from '../lib/store.ts';
 import { announce } from '../lib/toast.ts';
-import { type Article, toTitle } from '../lib/wiki.ts';
+import {
+  type Article,
+  article as loadArticle,
+  prefetchArticle,
+  toTitle,
+} from '../lib/wiki.ts';
 
 function useNow(running: boolean) {
   const [now, setNow] = useState(() => Date.now());
@@ -109,16 +119,66 @@ function mapProps(p: Plan, r: RunState) {
   };
 }
 
-export default function RunScreen({ plan: p }: { plan: Plan }) {
-  const existing = useRun(p.id);
-  useEffect(() => {
-    if (!existing) start(p);
-  }, [existing, p]);
-  if (!existing) return <div className="h-dvh bg-paper" />;
-  return <Playing p={p} r={existing} />;
+function PreviousArticle({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className="btn press min-h-11 flex-none flex-col gap-1 px-2 text-[13px]"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label="Previous article, adds a click"
+      data-tip="Previous article, adds a click"
+      data-key="⌫"
+    >
+      <span>Previous article</span>
+      <span className="font-normal text-[11px] text-pencil">+1 click</span>
+    </button>
+  );
 }
 
-function Playing({ p, r }: { p: Plan; r: RunState }) {
+export default function RunScreen({ plan: p }: { plan: Plan }) {
+  const existing = useRun(p.id);
+  const [generation, setGeneration] = useState(0);
+  const [exiting, setExiting] = useState(false);
+  useEffect(() => {
+    if (!existing && !exiting) start(p);
+  }, [existing, exiting, p]);
+  if (!existing || exiting) return <div className="h-dvh bg-paper" />;
+  return (
+    <Playing
+      key={generation}
+      p={p}
+      r={existing}
+      onRestart={() => {
+        start(p);
+        setGeneration((n) => n + 1);
+      }}
+      onQuit={() => {
+        setExiting(true);
+        discard(p.id);
+        navigate('/');
+      }}
+    />
+  );
+}
+
+function Playing({
+  p,
+  r,
+  onRestart,
+  onQuit,
+}: {
+  p: Plan;
+  r: RunState;
+  onRestart: () => void;
+  onQuit: () => void;
+}) {
   const id = p.id;
   const sound = useStore(soundStore);
   const top = r.stack[r.stack.length - 1] ?? {
@@ -128,37 +188,88 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
   const [attempt, setAttempt] = useState(0);
   const loaded = useArticle(top.key, attempt);
   const [shown, setShown] = useState<Article | null>(null);
-  const busy = useDelayed(loaded.status === 'loading' && shown !== null);
+  const busy = loaded.status === 'loading';
+  const navigation = useRef<string | null>(null);
+  const interactionReady = useRef(false);
+  interactionReady.current =
+    loaded.status === 'ready' && loaded.key === top.key;
+  const [motion, setMotion] = useState(false);
   const [peek, setPeek] = useState<LinkRef | null>(null);
   const [hover, setHover] = useState<{
     link: LinkRef;
-    x: number;
-    y: number;
   } | null>(null);
   const [findOpen, setFindOpen] = useState(false);
+  const [findMotion, setFindMotion] = useState(false);
   const [query, setQuery] = useState('');
+  const [settledQuery, setSettledQuery] = useState('');
   const [cursor, setCursor] = useState(0);
   const [hits, setHits] = useState(0);
-  const [punchOpen, setPunchOpen] = useState(false);
+  const [punchOpen, setPunchOpen] = useState(r.paused && !r.done);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [keysOpen, setKeysOpen] = useState(false);
   const [fresh, setFresh] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const findInput = useRef<HTMLInputElement>(null);
+  const findOpener = useRef<HTMLElement | null>(null);
   const arrived = useRef('');
   const running = !r.done && !r.paused && r.since !== null;
   const now = useNow(running);
   const time = elapsed(r, now);
   const phone = useMedia('(max-width: 599px)');
-  const land = useMedia('(orientation: landscape) and (max-height: 520px)');
+  const naturalLand = useMedia(
+    '(orientation: landscape) and (max-height: 520px)',
+  );
+  const [keyboardLayout, setKeyboardLayout] = useState<{
+    land: boolean;
+    width: number;
+    height: number;
+  } | null>(null);
+  const land = keyboardLayout?.land ?? naturalLand;
   const desk = useMedia('(min-width: 1200px)');
+  const normalisedQuery = normaliseFind(query);
+  const searching =
+    normalisedQuery.length >= 2 && normalisedQuery !== settledQuery;
+
+  useEffect(() => {
+    if (!findOpen || normalisedQuery.length < 2) {
+      setSettledQuery('');
+      return;
+    }
+    const timer = setTimeout(() => setSettledQuery(normalisedQuery), 200);
+    return () => clearTimeout(timer);
+  }, [findOpen, normalisedQuery]);
+
+  useLayoutEffect(() => {
+    if (!keyboardLayout) return;
+    const resize = () => {
+      // A software keyboard changes height, not device orientation. Keep the
+      // reader mounted until it closes; a physical rotation can change layout.
+      if (
+        Math.abs(innerWidth - keyboardLayout.width) > 8 ||
+        (!findOpen && innerHeight >= keyboardLayout.height - 80)
+      )
+        setKeyboardLayout(null);
+    };
+    resize();
+    addEventListener('resize', resize);
+    return () => removeEventListener('resize', resize);
+  }, [findOpen, keyboardLayout]);
 
   const target = p.kind === 'course' ? p.points[r.leg + 1] : null;
   const isLast = p.kind === 'course' && r.leg + 1 === p.points.length - 1;
   const legSplit =
     p.kind === 'course' ? time - (r.legTimes[r.leg - 1] ?? 0) : time;
   const left = TIMED_LIMIT - time;
+
+  useEffect(() => {
+    if (r.paused && !r.done) setPunchOpen(true);
+  }, [r.paused, r.done]);
+
+  useLayoutEffect(() => {
+    if (loaded.key === top.key && loaded.status !== 'loading')
+      navigation.current = null;
+  });
 
   useEffect(() => {
     if (loaded.status !== 'ready' || loaded.key !== top.key) return;
@@ -241,12 +352,29 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
 
   const doBack = useCallback(() => {
     if (!canBack(latest.current)) return;
+    navigation.current = latest.current.stack.at(-2)?.key ?? null;
+    setAttempt(0);
+    setMotion(false);
     back(id);
     sfx.step();
     haptic.tap();
     setPeek(null);
     setHover(null);
   }, [id]);
+
+  const closeFind = useCallback((animate: boolean, restoreFocus = true) => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active.closest('[data-find-panel]'))
+      active.blur();
+    setFindMotion(animate);
+    setFindOpen(false);
+    setQuery('');
+    setSettledQuery('');
+    setCursor(0);
+    if (restoreFocus && findOpener.current?.isConnected) {
+      findOpener.current.focus({ preventScroll: true });
+    }
+  }, []);
 
   useEffect(() => {
     if ((history.state as { guard?: string } | null)?.guard !== id)
@@ -255,32 +383,70 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
       if ((e.state as { guard?: string } | null)?.guard === id) return;
       if (location.pathname !== `/c/${id}/run`) return;
       history.pushState({ guard: id }, '');
-      if (canBack(latest.current)) doBack();
-      else if (!latest.current.done) setLeaveOpen(true);
+      if (!latest.current.done) setLeaveOpen(true);
     };
     addEventListener('popstate', onPop);
     return () => removeEventListener('popstate', onPop);
-  }, [id, doBack]);
+  }, [id]);
 
   const follow = useCallback(
     (l: LinkRef) => {
       const cur = latest.current;
-      if (cur.done || cur.paused) return;
+      if (
+        cur.done ||
+        cur.paused ||
+        navigation.current !== null ||
+        !interactionReady.current
+      )
+        return;
+      // Lock synchronously: two clicks can arrive before React renders loading.
+      navigation.current = l.key;
+      setAttempt(0);
+      setMotion(!l.keyboard);
+      loadArticle(l.key).catch(() => {});
       go(id, { key: l.key, title: toTitle(l.key) });
       sfx.step();
       haptic.tap();
       setPeek(null);
       setHover(null);
-      setFindOpen(false);
-      setQuery('');
+      closeFind(false, false);
     },
-    [id],
+    [id, closeFind],
   );
 
-  const openFind = useCallback(() => setFindOpen(true), []);
+  const openFind = useCallback(
+    (event?: { detail: number; currentTarget?: EventTarget | null }) => {
+      if (!findOpen) {
+        findOpener.current =
+          event?.currentTarget instanceof HTMLElement
+            ? event.currentTarget
+            : (document.activeElement as HTMLElement | null);
+        if (matchMedia('(pointer: coarse)').matches) {
+          setKeyboardLayout({
+            land: naturalLand,
+            width: innerWidth,
+            height: innerHeight,
+          });
+        }
+      }
+      setFindMotion(event !== undefined && event.detail !== 0);
+      setFindOpen(true);
+      setHover(null);
+      findInput.current?.focus({ preventScroll: true });
+    },
+    [findOpen, naturalLand],
+  );
+
+  const toggleFind = useCallback(
+    (event?: { detail: number; currentTarget?: EventTarget | null }) => {
+      if (findOpen) closeFind((event?.detail ?? 0) !== 0);
+      else openFind(event);
+    },
+    [findOpen, closeFind, openFind],
+  );
 
   useLayoutEffect(() => {
-    if (findOpen) findInput.current?.focus();
+    if (findOpen) findInput.current?.focus({ preventScroll: true });
   }, [findOpen]);
 
   useEffect(() => {
@@ -303,7 +469,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
       else if (e.key === '?') setKeysOpen(true);
       else if (e.key === 's' || e.key === 'S') soundStore.set((v) => !v);
       else if (e.key === 'Enter' && hover && !t.closest('a, button'))
-        follow(hover.link);
+        follow({ ...hover.link, keyboard: true });
       else if (e.key === 'Escape') setHover(null);
     };
     addEventListener('keydown', onKey);
@@ -311,13 +477,13 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
   }, [openFind, doBack, follow, hover]);
 
   const onHover = useCallback((l: LinkRef | null) => {
-    if (!l) {
+    if (!l || !interactionReady.current || navigation.current !== null) {
       setHover(null);
       return;
     }
-    const rect = l.el.getBoundingClientRect();
-    setHover({ link: l, x: rect.left, y: rect.bottom });
+    setHover({ link: l });
   }, []);
+  const onIntent = useCallback((l: LinkRef) => prefetchArticle(l.key), []);
 
   const cardBoxes = boxes(p, r, fresh);
   const mp = mapProps(p, r);
@@ -335,26 +501,34 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
   const peekData = usePeek(peek?.key ?? null);
   const hoverData = usePeek(hover?.link.key ?? null);
 
-  const article = shown ?? (loaded.status === 'ready' ? loaded.article : null);
+  const article = loaded.status === 'ready' ? loaded.article : shown;
   const settled =
     article && article.key !== top.key && r.stack.length > 1
       ? r.stack.slice(0, -1)
       : r.stack;
   const failed = loaded.status === 'error' ? loaded.kind : null;
 
-  const body = (
-    <div className="relative">
-      {busy && (
-        <div
-          className="absolute inset-x-0 -top-px h-0.5 origin-left animate-pulse bg-kite"
+  const loadingStatus = busy && (
+    <div className="sticky top-0 z-10 h-0">
+      <div
+        className="relative overflow-hidden border-[1.5px] border-ink bg-paper px-3 py-2 shadow-[0_4px_12px_rgba(22,22,22,0.08)]"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="block truncate font-medium text-[14px]">
+          Opening {top.title || toTitle(top.key)}…
+        </span>
+        <span
+          className="article-progress absolute inset-x-0 bottom-0 h-0.5 bg-kite-wash"
           aria-hidden="true"
         />
-      )}
-      <div
-        aria-busy={loaded.status === 'loading'}
-        aria-live="polite"
-        className="sr-only"
-      >
+      </div>
+    </div>
+  );
+
+  const body = (
+    <div className="relative">
+      <div aria-live="polite" className="sr-only">
         {loaded.status === 'ready' ? `${loaded.article.title} loaded` : ''}
       </div>
       {failed && (
@@ -372,9 +546,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
                   : "Couldn't load that article."}
           </span>
           {failed === 'missing' ? (
-            <button type="button" className="btn press" onClick={doBack}>
-              Back
-            </button>
+            <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
           ) : (
             <button
               type="button"
@@ -387,7 +559,14 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
         </div>
       )}
       {article ? (
-        <div key={article.key} className="fade-in">
+        <div
+          key={article.key}
+          className="article-content"
+          data-loading={busy || failed !== null}
+          data-motion={motion}
+          aria-busy={busy}
+          inert={busy || failed !== null}
+        >
           <p className="label mb-1.5">
             {settled.length > 1
               ? `From ${settled[settled.length - 2]?.title ?? ''} · click ${r.clicks}`
@@ -402,12 +581,18 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
           </h1>
           <Reader
             html={article.html}
-            query={findOpen ? query : ''}
+            query={
+              findOpen && normalisedQuery.length >= 2 && !searching
+                ? settledQuery
+                : ''
+            }
             cursor={cursor}
             onGo={follow}
             onPeek={(l) => setPeek(l)}
             onHover={onHover}
             onHits={setHits}
+            onIntent={onIntent}
+            disabled={busy || failed !== null}
           />
           <div className="mt-8 border-rule border-t pt-3">
             <Credit title={article.title} />
@@ -428,53 +613,38 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
     </div>
   );
 
-  const findBar = findOpen && (
-    <div className="flex items-center gap-2 border-rule border-b bg-white px-3 py-2 tab:px-6">
-      <Icon name="find" size={18} />
-      <label className="sr-only" htmlFor="find">
-        Find a link on this page
-      </label>
-      <input
-        id="find"
-        ref={findInput}
-        type="search"
-        inputMode="search"
-        enterKeyHint="next"
-        autoComplete="off"
-        autoCapitalize="none"
-        spellCheck={false}
-        placeholder="Find a link on this page"
-        className="min-w-0 flex-1 bg-transparent py-2 text-[16px] outline-none"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
+  const findBar = (
+    <FindBar
+      open={findOpen}
+      animate={findMotion}
+      query={query}
+      searching={searching}
+      hits={hits}
+      cursor={cursor}
+      inputRef={findInput}
+      onChange={(value) => {
+        setQuery(value);
+        if (normaliseFind(value) !== normalisedQuery) {
+          setSettledQuery('');
           setCursor(0);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            setCursor((c) => c + (e.shiftKey ? -1 : 1));
-          } else if (e.key === 'Escape') {
-            setFindOpen(false);
-            setQuery('');
-          }
-        }}
-      />
-      <span
-        className="num w-16 text-right text-[13px] text-pencil"
-        aria-live="polite"
+        }
+      }}
+      onStep={(direction) => setCursor((c) => c + direction)}
+      onClose={closeFind}
+    />
+  );
+
+  const readerPane = (padding: string) => (
+    <div className="relative min-h-0 flex-1" data-reader-viewport>
+      {findBar}
+      <div
+        ref={scroller}
+        data-article-scroller
+        className={`scroller h-full ${padding}`}
       >
-        {query.trim().length >= 2 ? `${hits} link${hits === 1 ? '' : 's'}` : ''}
-      </span>
-      <IconButton
-        icon="close"
-        label="Close find"
-        bordered={false}
-        onClick={() => {
-          setFindOpen(false);
-          setQuery('');
-        }}
-      />
+        {loadingStatus}
+        {body}
+      </div>
     </div>
   );
 
@@ -486,7 +656,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
         codeKey={isLast ? null : target.key}
         big={!phone}
       >
-        {!phone && (
+        {desk && !land && (
           <>
             <span className="num mr-1 font-semibold text-[20px]">
               {clock(legSplit)}
@@ -494,23 +664,13 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
             <button
               type="button"
               className="btn press"
-              onClick={openFind}
+              onClick={toggleFind}
               data-tip="Find a link on this page"
               data-key="F"
             >
               Find <span className="kbd kbd-fine">F</span>
             </button>
-            <button
-              type="button"
-              className="btn press"
-              onClick={doBack}
-              disabled={!canBack(r)}
-              aria-label="Back one article, adds a click"
-              data-tip="Back one article, adds a click"
-              data-key="⌫"
-            >
-              Back
-            </button>
+            <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
           </>
         )}
       </NextBar>
@@ -519,8 +679,8 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
         p={p}
         r={r}
         left={left}
-        phone={phone}
-        onFind={openFind}
+        phone={phone || land || !desk}
+        onFind={toggleFind}
         onBack={doBack}
       />
     ) : null;
@@ -586,25 +746,30 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
           </div>
         )}
         {nextBar}
-        {findBar}
-        <div
-          ref={scroller}
-          className="scroller min-h-0 flex-1 px-4 pt-4 pb-[calc(var(--drawer,96px)+24px)]"
-        >
-          {body}
-        </div>
+        {readerPane('px-4 pt-4 pb-[calc(var(--drawer,96px)+24px)]')}
         <Drawer
           label="Your card"
           peek={
-            <div className="flex items-center gap-2.5">
-              <div className="min-w-0 flex-1">{card}</div>
-              {clicksLine}
-              <IconButton
-                icon="back"
-                label="Back one article, adds a click"
-                onClick={doBack}
-                disabled={!canBack(r)}
-              />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="min-w-0 flex-1">{card}</div>
+                {clicksLine}
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] gap-2">
+                <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
+                <IconButton
+                  icon="find"
+                  label="Find a link on this page"
+                  onClick={toggleFind}
+                />
+                <button
+                  type="button"
+                  className="btn press px-2 text-[13px]"
+                  onClick={() => setLeaveOpen(true)}
+                >
+                  Game menu
+                </button>
+              </div>
             </div>
           }
           more={
@@ -616,25 +781,13 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
                 live={p.kind === 'course' ? legSplit : null}
                 compact
               />
-              <div className="grid grid-cols-3 gap-2">
-                <button type="button" className="btn press" onClick={openFind}>
-                  <Icon name="find" size={18} /> Find
-                </button>
-                <button
-                  type="button"
-                  className="btn press"
-                  onClick={() => setMapOpen(true)}
-                >
-                  <Icon name="map" size={18} /> Map
-                </button>
-                <button
-                  type="button"
-                  className="btn press"
-                  onClick={() => setLeaveOpen(true)}
-                >
-                  Leave
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn press"
+                onClick={() => setMapOpen(true)}
+              >
+                <Icon name="map" size={18} /> Map
+              </button>
             </div>
           }
         />
@@ -657,30 +810,25 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
               label={`${isLast ? 'Finish' : 'Next checkpoint'}${isLast ? '' : ` · ${code(target.key)}`}`}
               title={target.title}
               codeKey={null}
-            >
-              <IconButton
-                icon="find"
-                label="Find a link on this page"
-                keyHint="F"
-                onClick={openFind}
-              />
-              <IconButton
-                icon="back"
-                label="Back one article, adds a click"
-                keyHint="⌫"
-                onClick={doBack}
-                disabled={!canBack(r)}
-              />
-            </NextBar>
+            ></NextBar>
           ) : (
             nextBar
           )}
-          {findBar}
-          <div
-            ref={scroller}
-            className="scroller min-h-0 flex-1 px-4 pt-3 pb-[calc(16px+var(--sab))]"
-          >
-            {body}
+          {readerPane('px-4 pt-3 pb-[calc(16px+var(--sab))]')}
+          <div className="flex flex-none items-center justify-end gap-2 border-rule border-t px-4 py-2 pb-[calc(8px+var(--sab))]">
+            <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
+            <IconButton
+              icon="find"
+              label="Find a link on this page"
+              onClick={toggleFind}
+            />
+            <button
+              type="button"
+              className="btn press text-[13px]"
+              onClick={() => setLeaveOpen(true)}
+            >
+              Game menu
+            </button>
           </div>
         </div>
       </div>
@@ -696,7 +844,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
                 e.preventDefault();
                 setLeaveOpen(true);
               }}
-              aria-label="Kite home"
+              aria-label="Game menu"
             >
               <Wordmark className="text-[24px]" />
             </a>
@@ -734,17 +882,26 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
               </span>
             </div>
             {card}
+            <div className="grid grid-cols-[minmax(0,1fr)_44px] gap-2">
+              <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
+              <IconButton
+                icon="find"
+                label="Find a link on this page"
+                onClick={toggleFind}
+              />
+            </div>
+            <button
+              type="button"
+              className="press min-h-11 text-[14px] underline decoration-rule underline-offset-2"
+              onClick={() => setLeaveOpen(true)}
+            >
+              Game menu
+            </button>
           </div>
         </aside>
         <div className="flex min-w-0 flex-col">
           {nextBar}
-          {findBar}
-          <div
-            ref={scroller}
-            className="scroller min-h-0 flex-1 px-6 pt-6 pb-10 tab:px-10"
-          >
-            {body}
-          </div>
+          {readerPane('px-6 pt-6 pb-10 tab:px-10')}
         </div>
       </div>
     );
@@ -761,7 +918,7 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
                   e.preventDefault();
                   setLeaveOpen(true);
                 }}
-                aria-label="Kite home"
+                aria-label="Game menu"
               >
                 <Wordmark className="text-[22px]" />
               </a>
@@ -792,17 +949,18 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
               </span>
             </div>
             {card}
+            <button
+              type="button"
+              className="press min-h-11 text-[14px] underline decoration-rule underline-offset-2"
+              onClick={() => setLeaveOpen(true)}
+            >
+              Game menu
+            </button>
           </div>
         </div>
         <div className="flex min-w-0 flex-col">
           {nextBar}
-          {findBar}
-          <div
-            ref={scroller}
-            className="scroller min-h-0 flex-1 px-14 pt-9 pb-12"
-          >
-            {body}
-          </div>
+          {readerPane('px-14 pt-9 pb-12')}
           <div className="flex justify-end gap-3 border-rule border-t px-8 py-2.5 text-[12px] text-pencil">
             <span>
               <span className="kbd">Tab</span> moves through links ·{' '}
@@ -825,30 +983,12 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
       {layout}
 
       {hover && !phone && (
-        <div
-          data-peek
-          role="tooltip"
-          className="fixed z-40 flex w-[320px] flex-col border-[1.5px] border-ink bg-paper shadow-[0_10px_24px_rgba(22,22,22,0.14)]"
-          style={{
-            left: Math.min(hover.x, innerWidth - 336),
-            top: Math.min(hover.y + 8, innerHeight - 220),
-          }}
-        >
-          <div className="flex flex-col gap-1 px-3.5 py-3">
-            <span className="label">Link preview</span>
-            <span className="font-semibold text-[20px]">
-              {hoverData?.data?.title ?? toTitle(hover.link.key)}
-            </span>
-            <span className="line-clamp-3 min-h-[4.2em] text-[14px] text-[#2c2a27] leading-snug">
-              {hoverData?.data?.extract ??
-                (hoverData?.failed ? "Couldn't load a preview." : '')}
-            </span>
-          </div>
-          <div className="flex items-center justify-between border-rule border-t px-3.5 py-2 text-[12px] text-pencil">
-            <span>Click to go, the clock keeps running</span>
-            <span className="kbd">Enter</span>
-          </div>
-        </div>
+        <LinkPreview
+          link={hover.link}
+          summary={hoverData?.data ?? null}
+          failed={hoverData?.failed ?? false}
+          onDismiss={() => setHover(null)}
+        />
       )}
 
       <Sheet
@@ -954,40 +1094,16 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
         )}
       </Sheet>
 
-      <Sheet
+      <RunOptions
         open={leaveOpen}
         onClose={() => setLeaveOpen(false)}
-        label="Leave the course"
-        footer={
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              className="btn press min-h-13"
-              onClick={() => {
-                setLeaveOpen(false);
-                hold(id);
-                navigate('/');
-              }}
-            >
-              Leave
-            </button>
-            <button
-              type="button"
-              className="btn btn-kite press"
-              onClick={() => setLeaveOpen(false)}
-            >
-              Keep going
-            </button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-2">
-          <h2 className="m-0 font-semibold text-[24px]">Leave the course?</h2>
-          <p className="m-0 text-[16px] text-[#2c2a27]">
-            Your clock stops. Come back any time to carry on from here.
-          </p>
-        </div>
-      </Sheet>
+        onRestart={onRestart}
+        onQuit={onQuit}
+        onLeave={() => {
+          hold(id);
+          navigate('/');
+        }}
+      />
 
       <Sheet open={mapOpen} onClose={() => setMapOpen(false)} label="The map">
         <div className="flex flex-col gap-3">
@@ -1022,7 +1138,8 @@ function Playing({ p, r }: { p: Plan; r: RunState }) {
             ['Tab', 'Move through the links'],
             ['Enter', 'Go to the link'],
             ['F', 'Find a link on this page'],
-            ['⌫', 'Back one article, adds a click'],
+            ['↑ / ↓', 'Previous / next match in Find'],
+            ['⌫', 'Previous article, adds a click'],
             ['M', 'Open the map'],
             ['S', 'Sound on or off'],
             ['Esc', 'Close'],
@@ -1078,14 +1195,7 @@ function TimedHead({
               <button type="button" className="btn press" onClick={onFind}>
                 Find <span className="kbd kbd-fine">F</span>
               </button>
-              <button
-                type="button"
-                className="btn press"
-                onClick={onBack}
-                disabled={!canBack(r)}
-              >
-                Back
-              </button>
+              <PreviousArticle onClick={onBack} disabled={!canBack(r)} />
             </>
           )}
           <div className="flex flex-col items-end">

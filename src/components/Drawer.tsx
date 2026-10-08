@@ -129,6 +129,7 @@ export default function Drawer({
   return (
     <section
       ref={panel}
+      data-reader-dock
       aria-label={label}
       className="fixed inset-x-0 bottom-0 z-30 border-ink border-t-[1.5px] bg-paper shadow-[0_-8px_18px_rgba(22,22,22,0.1)] will-change-transform"
       style={{ transform: 'translate3d(0, 100%, 0)' }}

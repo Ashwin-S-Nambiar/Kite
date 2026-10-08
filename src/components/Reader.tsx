@@ -1,11 +1,17 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef } from 'react';
+import { matchingLinks, revealFoundLink } from '../lib/find.ts';
 import { haptic } from '../lib/haptics.ts';
 
 const HOLD = 450;
 const SLOP = 8;
 const fine = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-export type LinkRef = { key: string; text: string; el: HTMLAnchorElement };
+export type LinkRef = {
+  key: string;
+  text: string;
+  el: HTMLAnchorElement;
+  keyboard?: boolean;
+};
 
 const Body = memo(function Body({ html }: { html: string }) {
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
@@ -19,6 +25,8 @@ export default function Reader({
   onPeek,
   onHover,
   onHits,
+  onIntent,
+  disabled = false,
 }: {
   html: string;
   query: string;
@@ -27,16 +35,19 @@ export default function Reader({
   onPeek: (l: LinkRef) => void;
   onHover: (l: LinkRef | null) => void;
   onHits: (n: number) => void;
+  onIntent?: (l: LinkRef) => void;
+  disabled?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
-  const cbs = useRef({ onGo, onPeek, onHover, onHits });
-  cbs.current = { onGo, onPeek, onHover, onHits };
+  const cbs = useRef({ onGo, onPeek, onHover, onHits, onIntent, disabled });
+  cbs.current = { onGo, onPeek, onHover, onHits, onIntent, disabled };
 
   useEffect(() => {
     const el = root.current;
     if (!el) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let hover: ReturnType<typeof setTimeout> | undefined;
+    let intent: ReturnType<typeof setTimeout> | undefined;
     let start: { x: number; y: number; a: HTMLAnchorElement } | null = null;
     let fired = false;
 
@@ -53,11 +64,20 @@ export default function Reader({
       if (start) start.a.classList.remove('held');
       start = null;
     };
+    const dismissHover = () => {
+      clearTimeout(hover);
+      clearTimeout(intent);
+      cbs.current.onHover(null);
+    };
+    const inPreview = (target: EventTarget | null) =>
+      (target as HTMLElement | null)?.closest?.('[data-peek]');
 
     const down = (e: PointerEvent) => {
       const a = linkOf(e.target);
       fired = false;
-      if (!a || e.pointerType === 'mouse') return;
+      if (!a || cbs.current.disabled) return;
+      cbs.current.onIntent?.(ref(a));
+      if (e.pointerType === 'mouse') return;
       start = { x: e.clientX, y: e.clientY, a };
       timer = setTimeout(() => {
         if (!start) return;
@@ -84,101 +104,129 @@ export default function Reader({
       const a = linkOf(e.target);
       if (!a) return;
       e.preventDefault();
+      if (cbs.current.disabled) return;
       if (fired) {
         fired = false;
         return;
       }
       if (e.metaKey || e.ctrlKey || e.shiftKey) return;
       clearTimeout(hover);
+      clearTimeout(intent);
       cbs.current.onHover(null);
-      cbs.current.onGo(ref(a));
+      cbs.current.onGo({ ...ref(a), keyboard: e.detail === 0 });
     };
     const context = (e: MouseEvent) => {
       const a = linkOf(e.target);
       if (!a) return;
       e.preventDefault();
+      if (cbs.current.disabled) return;
       clear();
       if (!fired) cbs.current.onPeek(ref(a));
       fired = true;
     };
     const over = (e: PointerEvent) => {
-      if (!fine()) return;
+      if (!fine() || cbs.current.disabled) return;
       const a = linkOf(e.target);
+      if (a?.contains(e.relatedTarget as Node | null)) return;
       clearTimeout(hover);
-      if (!a) return;
-      hover = setTimeout(() => cbs.current.onHover(ref(a)), HOLD);
+      clearTimeout(intent);
+      if (!a) {
+        cbs.current.onHover(null);
+        return;
+      }
+      intent = setTimeout(() => cbs.current.onIntent?.(ref(a)), 120);
+      hover = setTimeout(() => {
+        if (a.isConnected) cbs.current.onHover(ref(a));
+      }, HOLD);
     };
     const out = (e: PointerEvent) => {
       const a = linkOf(e.target);
       if (!a || a.contains(e.relatedTarget as Node | null)) return;
       clearTimeout(hover);
-      if (!(e.relatedTarget as HTMLElement | null)?.closest?.('[data-peek]'))
-        cbs.current.onHover(null);
+      clearTimeout(intent);
+      if (!inPreview(e.relatedTarget)) cbs.current.onHover(null);
+    };
+    const leave = (e: PointerEvent) => {
+      clearTimeout(hover);
+      clearTimeout(intent);
+      if (!inPreview(e.relatedTarget)) cbs.current.onHover(null);
+    };
+    const cancel = () => {
+      clear();
+      dismissHover();
+    };
+    const visibility = () => {
+      if (document.hidden) dismissHover();
+    };
+    const scroll = (e: Event) => {
+      if (!inPreview(e.target)) dismissHover();
     };
     const focus = (e: FocusEvent) => {
       const a = linkOf(e.target);
+      if (a && !cbs.current.disabled) cbs.current.onIntent?.(ref(a));
       if (a?.matches(':focus-visible')) cbs.current.onHover(ref(a));
     };
     const blur = (e: FocusEvent) => {
-      if (linkOf(e.target)) cbs.current.onHover(null);
+      if (linkOf(e.target)) dismissHover();
     };
 
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
-    el.addEventListener('pointercancel', clear);
+    el.addEventListener('pointercancel', cancel);
     el.addEventListener('touchend', touchEnd, { passive: false });
     el.addEventListener('click', click);
     el.addEventListener('contextmenu', context);
     el.addEventListener('pointerover', over);
     el.addEventListener('pointerout', out);
+    el.addEventListener('pointerleave', leave);
     el.addEventListener('focusin', focus);
     el.addEventListener('focusout', blur);
+    document.addEventListener('scroll', scroll, true);
+    document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('blur', dismissHover);
     return () => {
       clearTimeout(timer);
       clearTimeout(hover);
+      clearTimeout(intent);
       el.removeEventListener('pointerdown', down);
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
-      el.removeEventListener('pointercancel', clear);
+      el.removeEventListener('pointercancel', cancel);
       el.removeEventListener('touchend', touchEnd);
       el.removeEventListener('click', click);
       el.removeEventListener('contextmenu', context);
       el.removeEventListener('pointerover', over);
       el.removeEventListener('pointerout', out);
+      el.removeEventListener('pointerleave', leave);
       el.removeEventListener('focusin', focus);
       el.removeEventListener('focusout', blur);
+      document.removeEventListener('scroll', scroll, true);
+      document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('blur', dismissHover);
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = root.current;
     if (!el || !html) return;
     const links = [...el.querySelectorAll<HTMLAnchorElement>('a[data-k]')];
     for (const a of links) a.classList.remove('hit', 'now');
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) {
+    if (disabled || query.trim().length < 2) {
       cbs.current.onHits(0);
       return;
     }
-    const hits = links.filter((a) =>
-      (a.textContent ?? '').toLowerCase().includes(q),
-    );
+    const hits = matchingLinks(el, query);
     for (const a of hits) a.classList.add('hit');
     cbs.current.onHits(hits.length);
     if (hits.length) {
       const now = hits[((cursor % hits.length) + hits.length) % hits.length];
       if (now) {
         now.classList.add('now');
-        now.scrollIntoView({
-          block: 'center',
-          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? 'auto'
-            : 'smooth',
-        });
+        revealFoundLink(now);
       }
     }
-  }, [query, cursor, html]);
+  }, [query, cursor, html, disabled]);
 
   return (
     <div ref={root} className="prose-kite">

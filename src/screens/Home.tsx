@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useDock, useMedia } from '../components/Bits.tsx';
+import { useMedia } from '../components/Bits.tsx';
 import CourseMap from '../components/CourseMap.tsx';
 import Icon, { Wordmark } from '../components/Icon.tsx';
 import { Pins } from '../components/PunchCard.tsx';
+import RunOptions from '../components/RunOptions.tsx';
 import Sheet from '../components/Sheet.tsx';
 import { useOnline } from '../hooks/useOnline.ts';
 import {
@@ -17,7 +18,15 @@ import {
   shiftDay,
 } from '../lib/course.ts';
 import { navigate } from '../lib/route.ts';
-import { finishedDays, plan, streak, useResults, useRun } from '../lib/run.ts';
+import {
+  discard,
+  finishedDays,
+  plan,
+  start,
+  streak,
+  useResults,
+  useRun,
+} from '../lib/run.ts';
 import { soundStore } from '../lib/sound.ts';
 import { useStore } from '../lib/store.ts';
 import About from './About.tsx';
@@ -49,10 +58,10 @@ export default function Home() {
   const [friends, setFriends] = useState(false);
   const [cards, setCards] = useState(false);
   const [about, setAbout] = useState(false);
+  const [options, setOptions] = useState(false);
   const wide = useMedia(
-    '(min-width: 900px), (orientation: landscape) and (max-height: 520px)',
+    '(min-width: 900px), (min-width: 600px) and (orientation: landscape) and (max-height: 520px)',
   );
-  const dock = useDock();
   const online = useOnline();
   const first = course.points[0];
   const last = course.points[course.points.length - 1];
@@ -62,11 +71,12 @@ export default function Home() {
   }, []);
 
   const week = Array.from({ length: 7 }, (_, i) => shiftDay(today, i - 6));
-  const primary = done
-    ? { text: 'See your card', go: `/c/${course.id}/card` }
-    : run && !run.done
+  const primary =
+    run && !run.done
       ? { text: 'Carry on with today’s course', go: `/c/${course.id}/run` }
-      : { text: 'Start today’s course', go: `/c/${course.id}` };
+      : done
+        ? { text: 'See your card', go: `/c/${course.id}/card` }
+        : { text: 'Start today’s course', go: `/c/${course.id}` };
 
   const map = (
     <CourseMap
@@ -89,10 +99,10 @@ export default function Home() {
         {first?.title} to {last?.title}
       </span>
       <span className="text-[14px] text-pencil">
-        {done
-          ? `Finished in ${clicks(done.clicks)}, ${clock(done.time)}. Shortest route: ${course.shortest}.`
-          : run && !run.done
-            ? `In progress · leg ${run.leg + 1} of ${course.legs.length}, ${clicks(run.clicks)} so far.`
+        {run && !run.done
+          ? `In progress · leg ${run.leg + 1} of ${course.legs.length}, ${clicks(run.clicks)} so far.`
+          : done
+            ? `Finished in ${clicks(done.clicks)}, ${clock(done.time)}. Shortest route: ${course.shortest}.`
             : `Two checkpoints on the way. Shortest route: ${course.shortest} clicks.`}
       </span>
     </div>
@@ -228,26 +238,39 @@ export default function Home() {
   );
 
   const cta = (
-    <a
-      href={primary.go}
-      className="btn btn-kite press w-full"
-      onClick={(e) => {
-        e.preventDefault();
-        navigate(primary.go);
-      }}
-    >
-      {primary.text}
-      <Icon name="next" size={18} />
-    </a>
+    <>
+      <a
+        href={primary.go}
+        className="btn btn-kite press w-full"
+        onClick={(e) => {
+          e.preventDefault();
+          navigate(primary.go);
+        }}
+      >
+        {primary.text}
+        <Icon name="next" size={18} />
+      </a>
+      {run && !run.done && (
+        <button
+          type="button"
+          className="press min-h-11 w-full text-[14px] underline decoration-rule underline-offset-2"
+          onClick={() => setOptions(true)}
+        >
+          Game menu
+        </button>
+      )}
+    </>
   );
 
   return (
     <>
       {wide ? (
-        <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.25fr)_minmax(420px,520px)] overflow-hidden land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="relative border-ink border-r-[1.5px]">{map}</div>
-          <div className="flex min-h-0 flex-col">
-            <div className="scroller flex min-h-0 flex-1 flex-col gap-6 px-10 pt-[calc(28px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
+        <main className="grid min-h-dvh grid-cols-[minmax(0,1.25fr)_minmax(420px,520px)] pr-(--sar) pl-(--sal) land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="sticky top-0 h-dvh border-ink border-r-[1.5px]">
+            {map}
+          </div>
+          <div className="flex min-w-0 flex-col">
+            <div className="flex flex-1 flex-col gap-6 px-10 pt-[calc(28px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
               {header}
               <div className="border-[1.5px] border-ink bg-white">
                 {todayCard}
@@ -255,18 +278,15 @@ export default function Home() {
               {weekStrip}
               {modes}
             </div>
-            <div
-              ref={dock}
-              className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))] flex flex-col gap-2.5"
-            >
+            <div className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))] flex flex-col gap-2.5">
               {cta}
               <Footer />
             </div>
           </div>
         </main>
       ) : (
-        <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
-          <div className="scroller flex min-h-0 flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] tab:mx-auto tab:w-full tab:max-w-140 tab:gap-6 tab:pt-10">
+        <main className="flex min-h-dvh flex-col pr-(--sar) pl-(--sal)">
+          <div className="flex flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:gap-6 tab:pt-10">
             <div className="-mr-2">{header}</div>
             <div className="border-[1.5px] border-ink bg-white">
               <div className="relative h-[clamp(110px,22dvh,200px)] border-ink border-b-[1.5px]">
@@ -277,15 +297,23 @@ export default function Home() {
             {weekStrip}
             {modes}
           </div>
-          <div
-            ref={dock}
-            className="flex flex-none flex-col gap-2.5 border-rule border-t bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:border-0 tab:pb-10"
-          >
+          <div className="flex flex-none flex-col gap-2.5 border-rule border-t bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:border-0 tab:pb-10">
             {cta}
             <Footer />
           </div>
         </main>
       )}
+
+      <RunOptions
+        open={options}
+        onClose={() => setOptions(false)}
+        onRestart={() => {
+          const p = plan(course.id);
+          if (p) start(p);
+          navigate(`/c/${course.id}/run`);
+        }}
+        onQuit={() => discard(course.id)}
+      />
 
       <Sheet open={levels} onClose={() => setLevels(false)} label="New course">
         <h2 className="m-0 mb-1 font-semibold text-[24px]">New course</h2>

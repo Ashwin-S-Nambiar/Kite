@@ -1,27 +1,52 @@
 import { useEffect, useState } from 'react';
-import { type Article, article, WikiError } from '../lib/wiki.ts';
+import {
+  type Article,
+  article,
+  cachedArticle,
+  WikiError,
+} from '../lib/wiki.ts';
 
 export type Loaded =
   | { status: 'loading'; key: string }
   | { status: 'ready'; key: string; article: Article }
   | { status: 'error'; key: string; kind: WikiError['kind'] };
 
+function initialLoad(key: string, attempt: number): Loaded {
+  const cached = attempt === 0 ? cachedArticle(key) : null;
+  return cached
+    ? { status: 'ready', key, article: cached }
+    : { status: 'loading', key };
+}
+
 export function useArticle(key: string, attempt: number): Loaded {
-  const [state, setState] = useState<Loaded>({ status: 'loading', key });
+  const [state, setState] = useState(() => ({
+    key,
+    attempt,
+    loaded: initialLoad(key, attempt),
+  }));
 
   useEffect(() => {
     let live = true;
-    setState({ status: 'loading', key });
+    setState({ key, attempt, loaded: initialLoad(key, attempt) });
     article(key, attempt > 0)
       .then((a) => {
-        if (live) setState({ status: 'ready', key, article: a });
+        if (live)
+          setState({
+            key,
+            attempt,
+            loaded: { status: 'ready', key, article: a },
+          });
       })
       .catch((e: unknown) => {
         if (live)
           setState({
-            status: 'error',
             key,
-            kind: e instanceof WikiError ? e.kind : 'failed',
+            attempt,
+            loaded: {
+              status: 'error',
+              key,
+              kind: e instanceof WikiError ? e.kind : 'failed',
+            },
           });
       });
     return () => {
@@ -29,25 +54,8 @@ export function useArticle(key: string, attempt: number): Loaded {
     };
   }, [key, attempt]);
 
-  return state;
-}
-
-export function useDelayed(on: boolean, delay = 180, hold = 450) {
-  const [shown, setShown] = useState(false);
-  const [since, setSince] = useState(0);
-  useEffect(() => {
-    if (on && !shown) {
-      const t = setTimeout(() => {
-        setShown(true);
-        setSince(Date.now());
-      }, delay);
-      return () => clearTimeout(t);
-    }
-    if (!on && shown) {
-      const left = hold - (Date.now() - since);
-      const t = setTimeout(() => setShown(false), Math.max(0, left));
-      return () => clearTimeout(t);
-    }
-  }, [on, shown, since, delay, hold]);
-  return shown;
+  // Never expose the previous request's ready state for a new destination.
+  return state.key === key && state.attempt === attempt
+    ? state.loaded
+    : initialLoad(key, attempt);
 }

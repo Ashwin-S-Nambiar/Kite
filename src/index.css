@@ -257,6 +257,33 @@ button {
   scrollbar-color: var(--color-rule) transparent;
 }
 
+.find-panel {
+  opacity: 0;
+  transform: translateY(-8px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 160ms var(--ease-out),
+    transform 160ms var(--ease-out),
+    visibility 0s linear 160ms;
+}
+.find-panel[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+.find-panel[data-animate="false"] {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .find-panel {
+    transform: none;
+    transition: none;
+  }
+}
+
 .prose-kite {
   font-size: 17px;
   line-height: 1.6;
@@ -375,6 +402,39 @@ button {
 
 .fade-in {
   animation: fade 160ms var(--ease-out) both;
+}
+
+.article-content[data-motion="true"] {
+  transition: opacity 120ms var(--ease-out);
+}
+.article-content[data-loading="true"] {
+  opacity: 0.45;
+  cursor: progress;
+}
+.article-progress::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 40%;
+  background: var(--color-kite);
+  animation: article-loading 1200ms linear infinite;
+}
+@keyframes article-loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .article-progress::after {
+    animation: none;
+    width: 100%;
+    transform: none;
+  }
 }
 @keyframes fade {
   from {
