@@ -8,6 +8,8 @@ const PATHS = {
   back: <path d="M10 6 4 12l6 6M4 12h16" />,
   next: <path d="M5 12h14M13 6l6 6-6 6" />,
   chevron: <path d="M9 6l6 6-6 6" />,
+  up: <path d="M6 15l6-6 6 6" />,
+  down: <path d="M6 9l6 6 6-6" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   map: (
     <>

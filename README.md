@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://kite.ashwin.co.in">
-    <img src="./docs/screenshots/Kite.webp" width="100%" alt="kite on desktop: an orienteering map with today's course drawn in orange on the left, and the wikipedia article for bicycle on the right, with the next checkpoint, albert einstein, pinned above it">
+    <img src="./docs/screenshots/Kite.webp" width="100%" alt="kite on desktop: the course map on the left, the electrical engineering article on the right, and computer as the next checkpoint">
   </a>
 </p>
 
@@ -20,10 +20,12 @@ the source of **[kite.ashwin.co.in](https://kite.ashwin.co.in)**, a race through
 
 it borrows from orienteering, where you run a course from checkpoint to checkpoint with a map and a card you punch at each one.
 
+the screenshots show the current desktop and phone layouts with sample progress.
+
 ## what it does
 
 <p align="center">
-  <img src="./docs/screenshots/Kite-2.webp" width="32%" alt="kite on a phone, home: today's course on a small map, a week of punched boxes for the streak, and other ways to play">
+  <img src="./docs/screenshots/Kite-2.webp" width="32%" alt="kite on a phone, home: today's course on a small map, a week of boxes for the streak, and other ways to play">
   &nbsp;
   <img src="./docs/screenshots/Kite-3.webp" width="32%" alt="kite on a phone, mid leg: the map strip, the next checkpoint, the article, and your card in a sheet at the bottom">
   &nbsp;
@@ -31,11 +33,12 @@ it borrows from orienteering, where you run a course from checkpoint to checkpoi
 </p>
 
 - **today's course.** everyone gets the same course each day: a start, two checkpoints and a finish. each one is a wikipedia article.
-- **links only.** you move by tapping links inside the article. no search, no infobox, no see also. going back works and counts as a click.
+- **links only.** you move by tapping links inside the article. no article search, no infobox, no see also. **previous article** steps back and adds one click.
 - **your card.** every checkpoint punches its own pin pattern into your card, made from the article's title. the clock pauses while you read your leg time.
 - **the shortest route.** every leg comes with the fewest clicks it can be done in. after you finish, you see your route beside it, leg by leg.
-- **link preview.** long press a link, or hover it on a computer, to read its first line before you go. the clock keeps running.
-- **find on page.** `F` filters the links on the page by a word, like ctrl+F in a real wikirace.
+- **link preview.** long press a link, or hover it on a computer, to read a short summary before you go. desktop previews fit above or below the link without covering it, and disappear when you move away or scroll. the clock keeps running.
+- **find a link.** press `F` or tap find to match links in the current article. matching waits until you pause typing, so partial words don't send the page scrolling. up and down arrows move through the matches; plain text isn't counted. tapping find again closes it.
+- **game menu.** save and leave stops the clock and keeps your progress. restart from scratch returns to the first article with zero clicks and a fresh clock; quit game discards the run and returns home. restart and quit ask first, and your finished cards stay saved.
 - **timed run.** ten minutes, five checkpoints, any order. get as many as you can.
 - **new course.** easy, medium or hard, as often as you like.
 - **race a friend.** your card goes out as a link. they get the same course, with your clicks and leg times to beat.
@@ -47,8 +50,10 @@ it borrows from orienteering, where you run a course from checkpoint to checkpoi
 | key | does |
 | --- | --- |
 | `Tab`, `Enter` | move through the links, go to one |
-| `F` | find a link on this page |
-| `⌫` | back one article, adds a click |
+| `F` | open or focus find in the current article |
+| `↑`, `↓` | previous or next match while using find |
+| `Enter`, `Shift+Enter` | next or previous match while typing in find |
+| `⌫` | previous article, adds one click |
 | `M` | open the map |
 | `S` | sound on or off |
 | `?` | all the keys |
@@ -71,8 +76,9 @@ the day's course is picked by date, so everyone gets the same one with no server
 - articles come from wikipedia's page html api, called from your browser with an `Api-User-Agent` header. a browser gets 200 requests a minute and a round uses about one per click.
 - the article is cleaned of navboxes, infoboxes, references, hatnotes, images and the end sections, then sanitised with dompurify. what's left is the text and its links.
 - a checkpoint counts when the article you land on is the checkpoint, after redirects. `Tea plant` takes you to `Camellia sinensis`, and that's what is checked.
-- the old article stays on screen while the next one loads, with a thin orange line if it takes a moment.
-- the browser's back button is the game's back button. it steps back one article and adds a click, and at the start of a leg it asks if you want to leave.
+- clicking a link immediately shows **opening [article]…** with a progress line. the old article stays visible with its links disabled until the new one is ready, so a second click can't add another move. a failed request offers retry, or previous article if the destination is missing.
+- loaded articles are cached for the session. hovering, focusing or pressing a link can fetch it ahead of the click, making a return visit or a prefetched link quicker. speculative fetching skips offline connections, data saving mode and slow mobile connections.
+- the browser's back button opens the game menu. it doesn't add a click. use **previous article** or `⌫` to retrace your route; that move adds one click.
 
 ## the design
 
@@ -85,8 +91,9 @@ the page is an orienteering map and a control card.
 - **type.** familjen grotesk for everything you read, bespoke stencil for the wordmark, checkpoint codes and big times, like the code stencilled on a real control stand.
 - **sound.** synthesized in the browser: a footstep for each click, the beep of an electronic punch at a checkpoint, a long beep at the finish, a paper rustle when a sheet opens. it respects the iphone silent switch and goes quiet in a background tab.
 - **no dark mode.** it's a paper map, read in daylight.
-- **on a phone** the map is a strip at the top and your card is a sheet you pull up from the bottom. landscape phones put the map on the left. tablets add the course list beside the article. desktops give the map half the screen.
-- **nothing jumps.** layout shift measures 0 on load and through a whole course.
+- **on a phone** the map is a strip at the top and your card is a sheet you pull up from the bottom. previous article, find and game menu sit in the card's toolbar. landscape phones put the map on the left. tablets add the course list beside the article. desktops give the map half the screen.
+- **home scrolls as one page.** the main button follows all three play options, so race a friend stays reachable on shorter screens.
+- **find stays out of the layout.** its bar overlays the article instead of resizing it, with a short fade and slide when tapped. keyboard shortcuts and reduced motion open and close it immediately. results scroll only inside the article pane, clear of the find bar and card drawer; opening the phone keyboard keeps the current reader layout.
 
 ## the stack
 
@@ -163,7 +170,14 @@ src/
 ![the finished card on desktop: the time in big stencil numbers, the punched card, and a table of legs with clicks, shortest and time](./docs/screenshots/Kite-5.webp)
 
 <p align="center">
-  <img src="./docs/screenshots/Kite-6.webp" width="32%" alt="a link preview on a phone: the first line of bicycle wheel, with stay and go to bicycle wheel buttons">
+  <img src="./docs/screenshots/Kite-find.webp" width="49%" alt="find on desktop: matching article links highlighted, a match count, and previous and next arrows">
+  <img src="./docs/screenshots/Kite-game-menu.webp" width="49%" alt="the game menu: save and leave, restart from scratch, quit game and keep going">
+</p>
+
+![a desktop link preview below its source link, leaving the link visible and clickable](./docs/screenshots/Kite-link-preview.webp)
+
+<p align="center">
+  <img src="./docs/screenshots/Kite-6.webp" width="32%" alt="a link preview on a phone: a short wikipedia summary, with stay and go buttons">
   &nbsp;
   <img src="./docs/screenshots/Kite-7.webp" width="32%" alt="a timed run on a phone: the countdown, five checkpoints to punch in any order, and the article below">
   &nbsp;

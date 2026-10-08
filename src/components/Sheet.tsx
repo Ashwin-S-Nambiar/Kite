@@ -16,6 +16,7 @@ const wide = () => matchMedia('(min-width: 600px)').matches;
 export default function Sheet({
   open,
   onClose,
+  onClosed,
   label,
   children,
   footer,
@@ -23,6 +24,7 @@ export default function Sheet({
 }: {
   open: boolean;
   onClose: () => void;
+  onClosed?: () => void;
   label: string;
   children: ReactNode;
   footer?: ReactNode;
@@ -39,6 +41,8 @@ export default function Sheet({
   const pushed = useRef(false);
   const cb = useRef(onClose);
   cb.current = onClose;
+  const closed = useRef(onClosed);
+  closed.current = onClosed;
   const drag = useRef<{
     y0: number;
     dy: number;
@@ -53,6 +57,7 @@ export default function Sheet({
     closing.current = false;
     const el = opener.current as HTMLElement | null;
     if (el?.isConnected) el.focus({ preventScroll: true });
+    closed.current?.();
   }, []);
 
   const animateOut = useCallback(
