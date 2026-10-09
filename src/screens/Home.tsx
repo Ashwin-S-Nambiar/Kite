@@ -4,6 +4,7 @@ import CourseMap from '../components/CourseMap.tsx';
 import Icon, { Wordmark } from '../components/Icon.tsx';
 import { Pins } from '../components/PunchCard.tsx';
 import RunOptions from '../components/RunOptions.tsx';
+import ScrollArea from '../components/ScrollArea.tsx';
 import Sheet from '../components/Sheet.tsx';
 import { useOnline } from '../hooks/useOnline.ts';
 import {
@@ -170,7 +171,7 @@ export default function Home() {
           key={m.title}
           type="button"
           onClick={m.on}
-          className={`press group grid min-h-14 grid-cols-[32px_1fr_20px] items-center gap-3 text-left ${i < 2 ? 'border-rule border-b' : ''}`}
+          className={`press group grid min-h-14 grid-cols-[32px_minmax(0,1fr)_20px] items-center gap-3 text-left ${i < 2 ? 'border-rule border-b' : ''}`}
         >
           <Icon name={m.icon} size={24} />
           <span className="flex flex-col py-2">
@@ -265,19 +266,17 @@ export default function Home() {
   return (
     <>
       {wide ? (
-        <main className="grid min-h-dvh grid-cols-[minmax(0,1.25fr)_minmax(420px,520px)] pr-(--sar) pl-(--sal) land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="sticky top-0 h-dvh border-ink border-r-[1.5px]">
-            {map}
-          </div>
-          <div className="flex min-w-0 flex-col">
-            <div className="flex flex-1 flex-col gap-6 px-10 pt-[calc(28px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
+        <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.25fr)_minmax(420px,520px)] pr-(--sar) pl-(--sal) land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="relative border-ink border-r-[1.5px]">{map}</div>
+          <div className="flex min-h-0 min-w-0 flex-col">
+            <ScrollArea className="flex flex-col gap-6 px-10 pt-[calc(28px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
               {header}
               <div className="border-[1.5px] border-ink bg-white">
                 {todayCard}
               </div>
               {weekStrip}
               {modes}
-            </div>
+            </ScrollArea>
             <div className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))] flex flex-col gap-2.5">
               {cta}
               <Footer />
@@ -285,8 +284,8 @@ export default function Home() {
           </div>
         </main>
       ) : (
-        <main className="flex min-h-dvh flex-col pr-(--sar) pl-(--sal)">
-          <div className="flex flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:gap-6 tab:pt-10">
+        <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
+          <ScrollArea className="flex flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:gap-6 tab:pt-10">
             <div className="-mr-2">{header}</div>
             <div className="border-[1.5px] border-ink bg-white">
               <div className="relative h-[clamp(110px,22dvh,200px)] border-ink border-b-[1.5px]">
@@ -296,7 +295,7 @@ export default function Home() {
             </div>
             {weekStrip}
             {modes}
-          </div>
+          </ScrollArea>
           <div className="flex flex-none flex-col gap-2.5 border-rule border-t bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:border-0 tab:pb-10">
             {cta}
             <Footer />

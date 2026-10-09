@@ -7,6 +7,7 @@ import {
   useRef,
 } from 'react';
 import { sfx } from '../lib/sound.ts';
+import ScrollArea from './ScrollArea.tsx';
 
 const DRAWER = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
@@ -279,7 +280,7 @@ export default function Sheet({
       <div className="pointer-events-none fixed inset-0 flex items-end justify-center tab:items-center tab:p-6">
         <div
           ref={panel}
-          className="pointer-events-auto relative flex max-h-[86dvh] w-full flex-col border-ink border-t-[1.5px] bg-paper shadow-[0_-12px_28px_rgba(22,22,22,0.16)] tab:max-h-[min(720px,86dvh)] tab:max-w-120 tab:border-[1.5px] tab:shadow-[0_14px_36px_rgba(22,22,22,0.2)]"
+          className="pointer-events-auto relative flex min-h-0 min-w-0 max-h-[86dvh] w-full flex-col border-ink border-t-[1.5px] bg-paper shadow-[0_-12px_28px_rgba(22,22,22,0.16)] tab:max-h-[min(720px,86dvh)] tab:max-w-120 tab:border-[1.5px] tab:shadow-[0_14px_36px_rgba(22,22,22,0.2)]"
         >
           <div
             className="flex flex-none cursor-grab touch-none justify-center pt-2.5 pb-1 tab:hidden"
@@ -290,16 +291,16 @@ export default function Sheet({
           >
             <span className="h-1 w-10 rounded-sm bg-handle" />
           </div>
-          <div
-            ref={body}
-            className="scroller min-h-0 flex-1 px-4.5 pt-2 pb-4 tab:px-6 tab:pt-6"
+          <ScrollArea
+            viewportRef={body}
+            className="px-4.5 pt-2 pb-4 tab:px-6 tab:pt-6"
             onPointerDown={(e) => down(e, true)}
             onPointerMove={move}
             onPointerUp={up}
             onPointerCancel={up}
           >
             {children}
-          </div>
+          </ScrollArea>
           {footer && (
             <div className="flex-none px-4.5 pt-2 pb-[calc(20px+var(--sab))] tab:px-6 tab:pb-6">
               {footer}

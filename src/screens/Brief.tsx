@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Glyph, useDock, useMedia, usePeek } from '../components/Bits.tsx';
 import CourseMap from '../components/CourseMap.tsx';
 import Icon from '../components/Icon.tsx';
+import ScrollArea from '../components/ScrollArea.tsx';
 import {
   clicks,
   clock,
@@ -37,7 +38,7 @@ function Row({
   const g = i === 0 ? 'start' : last ? 'finish' : 'cp';
   const line = s?.data?.extract.split(/(?<=\.)\s/)[0] ?? '';
   return (
-    <li className="grid grid-cols-[36px_1fr_auto] items-start gap-3 py-2.5">
+    <li className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-3 py-2.5">
       <span className="relative z-10 bg-paper pt-0.5">
         <Glyph kind={g} n={i} />
       </span>
@@ -67,6 +68,7 @@ export default function Brief({ plan: p }: { plan: Plan }) {
     '(min-width: 900px), (orientation: landscape) and (max-height: 520px)',
   );
   const dock = useDock();
+  const rulesHeading = useRef<HTMLHeadingElement>(null);
   const first = p.points[0];
   const last = p.points[p.points.length - 1];
   const name =
@@ -214,18 +216,24 @@ export default function Brief({ plan: p }: { plan: Plan }) {
 
   const rules = (
     <div className="flex flex-col gap-2.5 border-[1.5px] border-ink bg-white p-3.5">
-      <span className="font-semibold text-[15px]">How it works</span>
+      <h2
+        ref={rulesHeading}
+        tabIndex={-1}
+        className="m-0 font-semibold text-[15px]"
+      >
+        How it works
+      </h2>
       {p.kind === 'timed' ? (
         <ol className="m-0 flex list-none flex-col gap-2.5 p-0 text-[15px] text-[#2c2a27] leading-snug">
-          <li className="grid grid-cols-[22px_1fr] gap-2.5">
+          <li className="grid grid-cols-[22px_minmax(0,1fr)] gap-2.5">
             <b className="num font-semibold text-ink">1</b>Move only by tapping
             links inside the article. No search.
           </li>
-          <li className="grid grid-cols-[22px_1fr] gap-2.5">
+          <li className="grid grid-cols-[22px_minmax(0,1fr)] gap-2.5">
             <b className="num font-semibold text-ink">2</b>Reach as many
             checkpoints as you can, in any order.
           </li>
-          <li className="grid grid-cols-[22px_1fr] gap-2.5">
+          <li className="grid grid-cols-[22px_minmax(0,1fr)] gap-2.5">
             <b className="num font-semibold text-ink">3</b>Ten minutes on the
             clock. Going back counts as a click.
           </li>
@@ -252,12 +260,16 @@ export default function Brief({ plan: p }: { plan: Plan }) {
             pad={60}
           />
         </div>
-        <div className="flex min-h-0 flex-col">
-          <div className="scroller flex min-h-0 flex-1 flex-col gap-5 px-10 pt-[calc(24px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <ScrollArea
+            cue="How it works"
+            target={rulesHeading}
+            className="flex flex-col gap-5 px-10 pt-[calc(24px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3"
+          >
             {top}
             <div className="border-ink border-t-[1.5px]">{list}</div>
             {rules}
-          </div>
+          </ScrollArea>
           <div
             ref={dock}
             className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))]"
@@ -270,11 +282,15 @@ export default function Brief({ plan: p }: { plan: Plan }) {
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
-      <div className="scroller flex min-h-0 flex-1 flex-col gap-3 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:pt-10">
+      <ScrollArea
+        cue="How it works"
+        target={rulesHeading}
+        className="flex flex-col gap-3 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:pt-10"
+      >
         {top}
         <div className="border-ink border-t-[1.5px]">{list}</div>
         {rules}
-      </div>
+      </ScrollArea>
       <div
         ref={dock}
         className="flex-none bg-paper px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:pb-10"
