@@ -23,6 +23,7 @@ import LinkPreview from '../components/LinkPreview.tsx';
 import PunchCard, { type Box } from '../components/PunchCard.tsx';
 import Reader, { type LinkRef } from '../components/Reader.tsx';
 import RunOptions from '../components/RunOptions.tsx';
+import ScrollArea from '../components/ScrollArea.tsx';
 import Sheet from '../components/Sheet.tsx';
 import { useArticle } from '../hooks/useArticle.ts';
 import { clicks, clock, code, spoken } from '../lib/course.ts';
@@ -682,6 +683,7 @@ function Playing({
         phone={phone || land || !desk}
         onFind={toggleFind}
         onBack={doBack}
+        onMap={() => setMapOpen(true)}
       />
     ) : null;
 
@@ -856,11 +858,11 @@ function Playing({
               onClick={() => soundStore.set((v) => !v)}
             />
           </div>
-          <div className="relative aspect-square flex-none border-ink border-y-[1.5px]">
+          <div className="relative aspect-square flex-none border-ink border-y-[1.5px] short:aspect-auto short:h-[clamp(100px,25dvh,180px)]">
             {map('absolute inset-0')}
             {legChip}
           </div>
-          <div className="scroller min-h-0 flex-1 px-4 pt-3">
+          <ScrollArea cue="More checkpoints" className="px-4 pt-3 pb-3">
             <span className="label">
               {p.kind === 'course'
                 ? "Today's course"
@@ -872,7 +874,7 @@ function Playing({
               times={times}
               live={p.kind === 'course' ? legSplit : null}
             />
-          </div>
+          </ScrollArea>
           <div className="flex flex-col gap-2 border-ink border-t-[1.5px] px-4 pt-3.5 pb-[calc(20px+var(--sab))]">
             <div className="flex justify-between">
               <span className="label">Your card</span>
@@ -1164,6 +1166,7 @@ function TimedHead({
   phone,
   onFind,
   onBack,
+  onMap,
 }: {
   p: Plan;
   r: RunState;
@@ -1171,6 +1174,7 @@ function TimedHead({
   phone: boolean;
   onFind: () => void;
   onBack: () => void;
+  onMap: () => void;
 }) {
   const total = p.points.length - 1;
   return (
@@ -1215,7 +1219,15 @@ function TimedHead({
           }}
         />
       </div>
-      <ul className="m-0 flex list-none flex-wrap gap-1.5 px-4 py-3 tab:px-6">
+      <button
+        type="button"
+        className="hidden min-h-11 w-full items-center justify-between gap-2 px-4 text-left font-semibold text-[14px] land:flex"
+        onClick={onMap}
+      >
+        View checkpoints
+        <Icon name="chevron" size={18} />
+      </button>
+      <ul className="m-0 flex list-none flex-wrap gap-1.5 px-4 py-3 tab:px-6 land:hidden">
         {p.points.slice(1).map((pt) => {
           const got = r.punched.includes(pt.key);
           return (

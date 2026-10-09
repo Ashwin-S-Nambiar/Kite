@@ -3,6 +3,7 @@ import { useDock, useMedia } from '../components/Bits.tsx';
 import CourseMap from '../components/CourseMap.tsx';
 import Icon from '../components/Icon.tsx';
 import PunchCard, { type Box } from '../components/PunchCard.tsx';
+import ScrollArea from '../components/ScrollArea.tsx';
 import Sheet from '../components/Sheet.tsx';
 import { clicks, clock, dateLabel, newSeed } from '../lib/course.ts';
 import { haptic } from '../lib/haptics.ts';
@@ -393,11 +394,14 @@ export default function Card({ plan: p }: { plan: Plan }) {
             pad={60}
           />
         </div>
-        <div className="flex min-h-0 flex-col">
-          <div className="scroller flex min-h-0 flex-1 flex-col gap-5 px-10 pt-[calc(20px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <ScrollArea
+            cue="More card details"
+            className="flex flex-col gap-5 px-10 pt-[calc(20px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3"
+          >
             {head}
             {body}
-          </div>
+          </ScrollArea>
           <div
             ref={dock}
             className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))]"
@@ -411,10 +415,13 @@ export default function Card({ plan: p }: { plan: Plan }) {
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
-      <div className="scroller flex min-h-0 flex-1 flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:pt-10">
+      <ScrollArea
+        cue="More card details"
+        className="flex flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:pt-10"
+      >
         {head}
         {body}
-      </div>
+      </ScrollArea>
       <div
         ref={dock}
         className="flex-none px-4 pt-3 pb-[calc(14px+var(--sab))] tab:mx-auto tab:w-full tab:max-w-140 tab:pb-10"
