@@ -20,7 +20,7 @@ the source of **[kite.ashwin.co.in](https://kite.ashwin.co.in)**, a race through
 
 it borrows from orienteering, where you run a course from checkpoint to checkpoint with a map and a card you punch at each one.
 
-the screenshots show the current desktop and phone layouts with sample progress.
+the screenshots show the current desktop, tablet and phone layouts with sample progress and real wikipedia articles.
 
 ## what it does
 
@@ -89,10 +89,12 @@ the page is an orienteering map and a control card.
 - **the card.** square boxes with a corner number. a checkpoint punches pins into its box, a different pattern for every article.
 - **plain words.** the app says checkpoint, leg time, your card and timed run. control, split, mispunch and score-o stay in this readme.
 - **type.** familjen grotesk for everything you read, bespoke stencil for the wordmark, checkpoint codes and big times, like the code stencilled on a real control stand.
-- **sound.** synthesized in the browser: a footstep for each click, the beep of an electronic punch at a checkpoint, a long beep at the finish, a paper rustle when a sheet opens. it respects the iphone silent switch and goes quiet in a background tab.
+- **sound.** synthesized in the browser: a quiet click for buttons, a distinct two-note sound when you move between articles, the beep of an electronic punch at a checkpoint, a long beep at the finish, and a paper rustle when a sheet opens. the sound toggle remembers your choice, and background tabs stay quiet. on iphones with audio session support, playback respects the silent switch.
 - **no dark mode.** it's a paper map, read in daylight.
-- **on a phone** the map is a strip at the top and your card is a sheet you pull up from the bottom. previous article, find and game menu sit in the card's toolbar. landscape phones put the map on the left. tablets add the course list beside the article. desktops give the map half the screen.
-- **home scrolls as one page.** the main button follows all three play options, so race a friend stays reachable on shorter screens.
+- **one layout across a course.** home, briefing, play and results share the same split, map padding and content gutters. desktops give the map half the screen; larger tablets and landscape phones keep a narrower map beside the content. reader controls move to a separate toolbar when space is tight.
+- **on a phone** the map is a strip at the top and your card is a sheet you pull up from the bottom. previous article, find and game menu sit in the card's toolbar. smaller tablets use this stacked layout too, with the reading column and controls centred.
+- **short transitions.** moving between screens uses a subtle fade and slide while the map holds its place. article changes fade in briefly. reduced motion and keyboard navigation keep screen changes immediate, and browsers without view transitions get a simple entrance animation.
+- **scroll without losing the next step.** home, briefing and results scroll above a pinned action area. a more-below cue appears when content is out of view, including inside sheets. the reader scrolls independently of its controls.
 - **find stays out of the layout.** its bar overlays the article instead of resizing it, with a short fade and slide when tapped. keyboard shortcuts and reduced motion open and close it immediately. results scroll only inside the article pane, clear of the find bar and card drawer; opening the phone keyboard keeps the current reader layout.
 
 ## the stack
@@ -142,6 +144,9 @@ production indexing is configured for `kite.ashwin.co.in`; vercel sends `noindex
 scripts/
   courses.ts        builds courses and their shortest routes
   fonts.mjs         fetches bespoke stencil at build time
+docs/
+  capture-screenshots.py  captures the README images with sample progress
+  render-og.py      renders the social share image
 src/
   data/             courses.json, pool.json
   lib/
@@ -167,6 +172,13 @@ src/
 
 <br>
 
+<p align="center">
+  <img src="./docs/screenshots/Kite-home.webp" width="49%" alt="desktop home: an orienteering map beside today's course and a pinned start button">
+  <img src="./docs/screenshots/Kite-brief.webp" width="49%" alt="desktop briefing: the same map and divider beside the course checkpoints and start button">
+</p>
+
+![kite on a tablet: the same split layout, with the course and punched card over the map and the reader controls below the article](./docs/screenshots/Kite-tablet.webp)
+
 ![the finished card on desktop: the time in big stencil numbers, the punched card, and a table of legs with clicks, shortest and time](./docs/screenshots/Kite-5.webp)
 
 <p align="center">
@@ -185,6 +197,19 @@ src/
 </p>
 
 </details>
+
+### refreshing the screenshots
+
+with the dev server running, install python's `playwright` and `Pillow` packages and the chromium browser, then run:
+
+```bash
+python3 -m pip install playwright Pillow
+python3 -m playwright install chromium
+python3 docs/capture-screenshots.py
+python3 docs/render-og.py
+```
+
+the capture script uses a fixed date and sample local progress, fetches real wikipedia articles, and caches the responses in your temporary directory. it refreshes the README images and the map crop used by the social share image. pass `--base-url` if your dev server uses another address.
 
 ## credit
 
