@@ -53,8 +53,6 @@ export function useArticle(key: string, attempt: number): Loaded {
       live = false;
     };
   }, [key, attempt]);
-
-  // Never expose the previous request's ready state for a new destination.
   return state.key === key && state.attempt === attempt
     ? state.loaded
     : initialLoad(key, attempt);

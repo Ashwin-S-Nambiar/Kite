@@ -37,8 +37,6 @@ export function revealFoundLink(link: HTMLAnchorElement) {
         : view.bottom,
     ) - 12;
   if (bottom <= top) return;
-
-  // A matching link in a wide table also needs to be visible horizontally.
   const table = link.closest<HTMLElement>('.table-wrap');
   if (table && table.scrollWidth > table.clientWidth) {
     const bounds = table.getBoundingClientRect();

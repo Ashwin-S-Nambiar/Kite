@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useMedia } from '../components/Bits.tsx';
 import CourseMap from '../components/CourseMap.tsx';
 import Icon, { Wordmark } from '../components/Icon.tsx';
 import { Pins } from '../components/PunchCard.tsx';
 import RunOptions from '../components/RunOptions.tsx';
 import ScrollArea from '../components/ScrollArea.tsx';
 import Sheet from '../components/Sheet.tsx';
+import SplitLayout, {
+  MAP_PADDING,
+  useSplitLayout,
+} from '../components/SplitLayout.tsx';
 import { useOnline } from '../hooks/useOnline.ts';
 import {
   byId,
@@ -60,9 +63,7 @@ export default function Home() {
   const [cards, setCards] = useState(false);
   const [about, setAbout] = useState(false);
   const [options, setOptions] = useState(false);
-  const wide = useMedia(
-    '(min-width: 900px), (min-width: 600px) and (orientation: landscape) and (max-height: 520px)',
-  );
+  const wide = useSplitLayout();
   const online = useOnline();
   const first = course.points[0];
   const last = course.points[course.points.length - 1];
@@ -89,7 +90,7 @@ export default function Home() {
       legs={course.legs.map(() => ({ hops: 0, done: false }))}
       current={0}
       className="absolute inset-0"
-      pad={wide ? 56 : 30}
+      pad={wide ? MAP_PADDING : 30}
     />
   );
 
@@ -185,7 +186,7 @@ export default function Home() {
           <Icon
             name="chevron"
             size={18}
-            className="transition-transform duration-150 group-hover:translate-x-0.5"
+            className="transition-transform duration-150 group-hover-fine:translate-x-0.5"
           />
         </button>
       ))}
@@ -266,23 +267,20 @@ export default function Home() {
   return (
     <>
       {wide ? (
-        <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.25fr)_minmax(420px,520px)] pr-(--sar) pl-(--sal) land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="relative border-ink border-r-[1.5px]">{map}</div>
-          <div className="flex min-h-0 min-w-0 flex-col">
-            <ScrollArea className="flex flex-col gap-6 px-10 pt-[calc(28px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3">
-              {header}
-              <div className="border-[1.5px] border-ink bg-white">
-                {todayCard}
-              </div>
-              {weekStrip}
-              {modes}
-            </ScrollArea>
-            <div className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))] flex flex-col gap-2.5">
-              {cta}
-              <Footer />
+        <SplitLayout map={map}>
+          <ScrollArea className="panel-content flex flex-col gap-6">
+            {header}
+            <div className="border-[1.5px] border-ink bg-white">
+              {todayCard}
             </div>
+            {weekStrip}
+            {modes}
+          </ScrollArea>
+          <div className="panel-dock flex flex-col gap-2.5">
+            {cta}
+            <Footer />
           </div>
-        </main>
+        </SplitLayout>
       ) : (
         <main className="flex h-dvh flex-col overflow-hidden pr-(--sar) pl-(--sal)">
           <ScrollArea className="flex flex-col gap-4 px-4 pt-[calc(6px+var(--sat))] pb-4 tab:mx-auto tab:w-full tab:max-w-140 tab:gap-6 tab:pt-10">

@@ -7,8 +7,6 @@ import {
   useState,
 } from 'react';
 import Icon from './Icon.tsx';
-
-/** A scroll viewport with an actionable cue above any pinned footer. */
 export default function ScrollArea({
   children,
   className = '',
@@ -33,8 +31,6 @@ export default function ScrollArea({
     const inner = content.current;
     if (!el || !inner) return;
     const measure = () => {
-      // Measure the content independently of the space reserved for the cue.
-      // This prevents the cue itself from causing overflow or resize loops.
       setOverflow(
         el.clientHeight > 0 && inner.offsetHeight > el.clientHeight + 1,
       );
@@ -50,8 +46,6 @@ export default function ScrollArea({
       el.removeEventListener('scroll', measure);
     };
   }, [viewport]);
-
-  // Reserving cue space changes scrollHeight without resizing the content.
   useLayoutEffect(() => {
     const el = viewport.current;
     if (el)

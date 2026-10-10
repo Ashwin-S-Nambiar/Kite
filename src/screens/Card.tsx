@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useDock, useMedia } from '../components/Bits.tsx';
+import { useDock } from '../components/Bits.tsx';
 import CourseMap from '../components/CourseMap.tsx';
 import Icon from '../components/Icon.tsx';
 import PunchCard, { type Box } from '../components/PunchCard.tsx';
 import ScrollArea from '../components/ScrollArea.tsx';
 import Sheet from '../components/Sheet.tsx';
+import SplitLayout, {
+  MAP_PADDING,
+  useSplitLayout,
+} from '../components/SplitLayout.tsx';
 import { clicks, clock, dateLabel, newSeed } from '../lib/course.ts';
 import { haptic } from '../lib/haptics.ts';
 import { navigate, param } from '../lib/route.ts';
@@ -53,9 +57,7 @@ export default function Card({ plan: p }: { plan: Plan }) {
   const run = useRun(p.id);
   const res: Result | null = results[p.id] ?? null;
   const [routeOpen, setRouteOpen] = useState(false);
-  const wide = useMedia(
-    '(min-width: 900px), (orientation: landscape) and (max-height: 520px)',
-  );
+  const wide = useSplitLayout();
   const dock = useDock();
   const rival = decodeRival(param('vs'));
 
@@ -363,8 +365,8 @@ export default function Card({ plan: p }: { plan: Plan }) {
 
   if (wide)
     return (
-      <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.2fr)_minmax(440px,560px)] overflow-hidden land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="relative border-ink border-r-[1.5px]">
+      <SplitLayout
+        map={
           <CourseMap
             seed={p.id}
             kind={p.kind}
@@ -391,26 +393,22 @@ export default function Card({ plan: p }: { plan: Plan }) {
             current={0}
             draw
             className="absolute inset-0"
-            pad={60}
+            pad={MAP_PADDING}
           />
-        </div>
-        <div className="flex min-h-0 min-w-0 flex-col">
-          <ScrollArea
-            cue="More card details"
-            className="flex flex-col gap-5 px-10 pt-[calc(20px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3"
-          >
-            {head}
-            {body}
-          </ScrollArea>
-          <div
-            ref={dock}
-            className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))]"
-          >
-            {actions}
-          </div>
+        }
+      >
+        <ScrollArea
+          cue="More card details"
+          className="panel-content flex flex-col gap-5"
+        >
+          {head}
+          {body}
+        </ScrollArea>
+        <div ref={dock} className="panel-dock">
+          {actions}
         </div>
         {routeSheet}
-      </main>
+      </SplitLayout>
     );
 
   return (

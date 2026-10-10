@@ -42,7 +42,6 @@ export default function FindBar({
           e.preventDefault();
           onClose(false);
         } else if (['Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-          // Space/Enter on a button retain their normal activation behavior.
           if (e.key === 'Enter' && (e.target as HTMLElement).closest('button'))
             return;
           e.preventDefault();

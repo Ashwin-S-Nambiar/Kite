@@ -21,7 +21,6 @@ const notFoundPage = (): Plugin => {
   };
 };
 
-
 export default defineConfig({
   plugins: [react(), tailwindcss(), notFoundPage()],
 });
