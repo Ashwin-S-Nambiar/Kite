@@ -18,7 +18,7 @@ function audio() {
     if (nav.audioSession) nav.audioSession.type = 'ambient';
     ctx = new AudioContext();
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
   return ctx;
 }
 
@@ -88,9 +88,10 @@ const play =
   };
 
 export const sfx = {
-  step: play(() => {
-    noise({ dur: 0.07, gain: 0.22, freq: 180, q: 0.7 });
-    tone({ freq: 95, to: 60, dur: 0.06, gain: 0.05 });
+  article: play(() => {
+    noise({ dur: 0.055, gain: 0.07, freq: 1800, type: 'bandpass', q: 0.6 });
+    tone({ freq: 440, to: 620, dur: 0.055, gain: 0.025 });
+    tone({ freq: 740, to: 660, dur: 0.045, gain: 0.018, delay: 0.035 });
   }),
   punch: play(() => {
     noise({ dur: 0.03, gain: 0.08, freq: 2400, type: 'bandpass', q: 2 });
@@ -116,3 +117,19 @@ export const sfx = {
   }),
   tap: play(() => tone({ freq: 880, to: 640, dur: 0.03, gain: 0.018 })),
 };
+export function initSoundFeedback() {
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const control = event.target.closest<HTMLElement>(
+      'button, a[href], [role="button"]',
+    );
+    if (
+      !control ||
+      control.matches(':disabled, [aria-disabled="true"]') ||
+      control.closest('[inert], [data-sound="handled"]') ||
+      control.matches('a[data-k]')
+    )
+      return;
+    sfx.tap();
+  });
+}

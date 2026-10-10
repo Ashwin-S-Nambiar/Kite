@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { Glyph, useDock, useMedia, usePeek } from '../components/Bits.tsx';
+import { Glyph, useDock, usePeek } from '../components/Bits.tsx';
 import CourseMap from '../components/CourseMap.tsx';
 import Icon from '../components/Icon.tsx';
 import ScrollArea from '../components/ScrollArea.tsx';
+import SplitLayout, {
+  MAP_PADDING,
+  useSplitLayout,
+} from '../components/SplitLayout.tsx';
 import {
   clicks,
   clock,
@@ -64,9 +68,7 @@ export default function Brief({ plan: p }: { plan: Plan }) {
   const result = results[p.id] ?? null;
   const rival = decodeRival(param('vs'));
   const isDaily = p.kind === 'course' && daily(dayKey()).id === p.id;
-  const wide = useMedia(
-    '(min-width: 900px), (orientation: landscape) and (max-height: 520px)',
-  );
+  const wide = useSplitLayout();
   const dock = useDock();
   const rulesHeading = useRef<HTMLHeadingElement>(null);
   const first = p.points[0];
@@ -246,8 +248,8 @@ export default function Brief({ plan: p }: { plan: Plan }) {
 
   if (wide)
     return (
-      <main className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.2fr)_minmax(440px,560px)] overflow-hidden land:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="relative border-ink border-r-[1.5px]">
+      <SplitLayout
+        map={
           <CourseMap
             seed={p.id}
             kind={p.kind}
@@ -257,27 +259,23 @@ export default function Brief({ plan: p }: { plan: Plan }) {
             legs={[]}
             current={0}
             className="absolute inset-0"
-            pad={60}
+            pad={MAP_PADDING}
           />
+        }
+      >
+        <ScrollArea
+          cue="How it works"
+          target={rulesHeading}
+          className="panel-content flex flex-col gap-5"
+        >
+          {top}
+          <div className="border-ink border-t-[1.5px]">{list}</div>
+          {rules}
+        </ScrollArea>
+        <div ref={dock} className="panel-dock">
+          {actions}
         </div>
-        <div className="flex min-h-0 min-w-0 flex-col">
-          <ScrollArea
-            cue="How it works"
-            target={rulesHeading}
-            className="flex flex-col gap-5 px-10 pt-[calc(24px+var(--sat))] pb-6 land:gap-4 land:px-5 land:pt-3 land:pb-3"
-          >
-            {top}
-            <div className="border-ink border-t-[1.5px]">{list}</div>
-            {rules}
-          </ScrollArea>
-          <div
-            ref={dock}
-            className="flex-none border-rule border-t px-10 pt-3 pb-[calc(20px+var(--sab))] land:px-5 land:pt-2 land:pb-[calc(8px+var(--sab))]"
-          >
-            {actions}
-          </div>
-        </div>
-      </main>
+      </SplitLayout>
     );
 
   return (

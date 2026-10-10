@@ -166,7 +166,7 @@ export function NextBar({
   big?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 border-rule border-b px-4 py-2 tab:px-6">
+    <div className="reader-toolbar flex flex-none items-center gap-3 border-rule border-b px-4 py-2 tab:px-6">
       <Flag size={big ? 36 : 28} />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="label">{label}</span>

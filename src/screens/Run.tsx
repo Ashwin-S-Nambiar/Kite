@@ -23,8 +23,11 @@ import LinkPreview from '../components/LinkPreview.tsx';
 import PunchCard, { type Box } from '../components/PunchCard.tsx';
 import Reader, { type LinkRef } from '../components/Reader.tsx';
 import RunOptions from '../components/RunOptions.tsx';
-import ScrollArea from '../components/ScrollArea.tsx';
 import Sheet from '../components/Sheet.tsx';
+import SplitLayout, {
+  MAP_PADDING,
+  useSplitLayout,
+} from '../components/SplitLayout.tsx';
 import { useArticle } from '../hooks/useArticle.ts';
 import { clicks, clock, code, spoken } from '../lib/course.ts';
 import { normaliseFind } from '../lib/find.ts';
@@ -133,6 +136,7 @@ function PreviousArticle({
       className="btn press min-h-11 flex-none flex-col gap-1 px-2 text-[13px]"
       onClick={onClick}
       disabled={disabled}
+      data-sound="handled"
       aria-label="Previous article, adds a click"
       data-tip="Previous article, adds a click"
       data-key="⌫"
@@ -217,17 +221,20 @@ function Playing({
   const running = !r.done && !r.paused && r.since !== null;
   const now = useNow(running);
   const time = elapsed(r, now);
-  const phone = useMedia('(max-width: 599px)');
+  const naturalSplit = useSplitLayout();
   const naturalLand = useMedia(
-    '(orientation: landscape) and (max-height: 520px)',
+    '(min-width: 600px) and (orientation: landscape) and (max-height: 520px)',
   );
   const [keyboardLayout, setKeyboardLayout] = useState<{
     land: boolean;
+    split: boolean;
     width: number;
     height: number;
   } | null>(null);
+  const split = keyboardLayout?.split ?? naturalSplit;
+  const phone = !split;
   const land = keyboardLayout?.land ?? naturalLand;
-  const desk = useMedia('(min-width: 1200px)');
+  const roomy = useMedia('(min-width: 1600px)');
   const normalisedQuery = normaliseFind(query);
   const searching =
     normalisedQuery.length >= 2 && normalisedQuery !== settledQuery;
@@ -244,8 +251,6 @@ function Playing({
   useLayoutEffect(() => {
     if (!keyboardLayout) return;
     const resize = () => {
-      // A software keyboard changes height, not device orientation. Keep the
-      // reader mounted until it closes; a physical rotation can change layout.
       if (
         Math.abs(innerWidth - keyboardLayout.width) > 8 ||
         (!findOpen && innerHeight >= keyboardLayout.height - 80)
@@ -357,7 +362,7 @@ function Playing({
     setAttempt(0);
     setMotion(false);
     back(id);
-    sfx.step();
+    sfx.article();
     haptic.tap();
     setPeek(null);
     setHover(null);
@@ -400,13 +405,12 @@ function Playing({
         !interactionReady.current
       )
         return;
-      // Lock synchronously: two clicks can arrive before React renders loading.
       navigation.current = l.key;
       setAttempt(0);
       setMotion(!l.keyboard);
       loadArticle(l.key).catch(() => {});
       go(id, { key: l.key, title: toTitle(l.key) });
-      sfx.step();
+      sfx.article();
       haptic.tap();
       setPeek(null);
       setHover(null);
@@ -425,6 +429,7 @@ function Playing({
         if (matchMedia('(pointer: coarse)').matches) {
           setKeyboardLayout({
             land: naturalLand,
+            split: naturalSplit,
             width: innerWidth,
             height: innerHeight,
           });
@@ -435,7 +440,7 @@ function Playing({
       setHover(null);
       findInput.current?.focus({ preventScroll: true });
     },
-    [findOpen, naturalLand],
+    [findOpen, naturalLand, naturalSplit],
   );
 
   const toggleFind = useCallback(
@@ -528,7 +533,7 @@ function Playing({
   );
 
   const body = (
-    <div className="relative">
+    <div className="reader-content relative">
       <div aria-live="polite" className="sr-only">
         {loaded.status === 'ready' ? `${loaded.article.title} loaded` : ''}
       </div>
@@ -657,7 +662,7 @@ function Playing({
         codeKey={isLast ? null : target.key}
         big={!phone}
       >
-        {desk && !land && (
+        {roomy && !land && (
           <>
             <span className="num mr-1 font-semibold text-[20px]">
               {clock(legSplit)}
@@ -680,7 +685,7 @@ function Playing({
         p={p}
         r={r}
         left={left}
-        phone={phone || land || !desk}
+        phone={phone || land || !roomy}
         onFind={toggleFind}
         onBack={doBack}
         onMap={() => setMapOpen(true)}
@@ -709,7 +714,7 @@ function Playing({
       {...mp}
       focus={focus}
       className={cls}
-      pad={phone ? 26 : 40}
+      pad={phone ? 26 : MAP_PADDING}
       labels
     />
   );
@@ -797,181 +802,124 @@ function Playing({
     );
   } else if (land) {
     layout = (
-      <div className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(260px,38%)_1fr] overflow-hidden">
-        <div className="relative border-ink border-r-[1.5px] pl-(--sal)">
-          {map('absolute inset-0')}
-          {legChip}
-          <div className="absolute right-2.5 bottom-[calc(10px+var(--sab))] left-[calc(10px+var(--sal))] flex items-center gap-2 border-[1.5px] border-ink bg-paper p-1.5">
-            <div className="min-w-0 flex-1">{card}</div>
-            {clicksLine}
-          </div>
+      <SplitLayout
+        map={
+          <>
+            {map('absolute inset-0')}
+            {legChip}
+            <div className="absolute right-2.5 bottom-[calc(10px+var(--sab))] left-[calc(10px+var(--sal))] flex items-center gap-2 border-[1.5px] border-ink bg-paper p-1.5">
+              <div className="min-w-0 flex-1">{card}</div>
+              {clicksLine}
+            </div>
+          </>
+        }
+      >
+        {p.kind === 'course' && target ? (
+          <NextBar
+            label={`${isLast ? 'Finish' : 'Next checkpoint'}${isLast ? '' : ` · ${code(target.key)}`}`}
+            title={target.title}
+            codeKey={null}
+          ></NextBar>
+        ) : (
+          nextBar
+        )}
+        {readerPane('px-4 pt-3 pb-[calc(16px+var(--sab))]')}
+        <div className="flex flex-none items-center justify-end gap-2 border-rule border-t px-4 py-2 pb-[calc(8px+var(--sab))]">
+          <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
+          <IconButton
+            icon="find"
+            label="Find a link on this page"
+            onClick={toggleFind}
+          />
+          <button
+            type="button"
+            className="btn press text-[13px]"
+            onClick={() => setLeaveOpen(true)}
+          >
+            Game menu
+          </button>
         </div>
-        <div className="flex min-w-0 flex-col pr-(--sar)">
-          {p.kind === 'course' && target ? (
-            <NextBar
-              label={`${isLast ? 'Finish' : 'Next checkpoint'}${isLast ? '' : ` · ${code(target.key)}`}`}
-              title={target.title}
-              codeKey={null}
-            ></NextBar>
-          ) : (
-            nextBar
-          )}
-          {readerPane('px-4 pt-3 pb-[calc(16px+var(--sab))]')}
-          <div className="flex flex-none items-center justify-end gap-2 border-rule border-t px-4 py-2 pb-[calc(8px+var(--sab))]">
+      </SplitLayout>
+    );
+  } else {
+    layout = (
+      <SplitLayout
+        map={
+          <>
+            {map('absolute inset-0')}
+            <div className="map-course-panel absolute border-[1.5px] border-ink bg-paper">
+              <div className="flex items-center justify-between border-ink border-b-[1.5px] p-2.5">
+                <a
+                  href="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setLeaveOpen(true);
+                  }}
+                  aria-label="Game menu"
+                >
+                  <Wordmark className="text-[22px]" />
+                </a>
+                <IconButton
+                  icon={sound ? 'sound' : 'mute'}
+                  label={sound ? 'Mute' : 'Sound on'}
+                  keyHint="S"
+                  bordered={false}
+                  onClick={() => soundStore.set((v) => !v)}
+                />
+              </div>
+              <div className="px-3">
+                <CourseRows
+                  points={p.points}
+                  active={activeRow}
+                  times={times}
+                  live={p.kind === 'course' ? legSplit : null}
+                  compact
+                />
+              </div>
+            </div>
+            <div className="map-card-panel absolute flex flex-col gap-2 border-[1.5px] border-ink bg-paper p-2.5">
+              <div className="flex justify-between">
+                <span className="label">Your card</span>
+                <span className="num w-28 text-left text-[12px] text-pencil">
+                  {clicks(r.clicks)} ·{' '}
+                  {clock(p.kind === 'timed' ? left : time).padStart(
+                    5,
+                    '\u2007',
+                  )}
+                </span>
+              </div>
+              {card}
+              <button
+                type="button"
+                className="press min-h-11 text-[14px] underline decoration-rule underline-offset-2"
+                onClick={() => setLeaveOpen(true)}
+              >
+                Game menu
+              </button>
+            </div>
+          </>
+        }
+      >
+        {nextBar}
+        {readerPane('reader-padding')}
+        {!roomy && (
+          <div className="reader-toolbar flex flex-none items-center justify-end gap-2 border-rule border-t py-2">
             <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
             <IconButton
               icon="find"
               label="Find a link on this page"
               onClick={toggleFind}
             />
-            <button
-              type="button"
-              className="btn press text-[13px]"
-              onClick={() => setLeaveOpen(true)}
-            >
-              Game menu
-            </button>
           </div>
+        )}
+        <div className="reader-toolbar hidden justify-end gap-3 border-rule border-t py-2.5 text-[12px] text-pencil desk:flex">
+          <span>
+            <span className="kbd">Tab</span> moves through links ·{' '}
+            <span className="kbd">M</span> map · <span className="kbd">?</span>{' '}
+            keys
+          </span>
         </div>
-      </div>
-    );
-  } else if (!desk) {
-    layout = (
-      <div className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[300px_1fr] overflow-hidden">
-        <aside className="flex min-h-0 flex-col border-ink border-r-[1.5px]">
-          <div className="flex items-center justify-between px-4 pt-[calc(20px+var(--sat))] pb-3">
-            <a
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                setLeaveOpen(true);
-              }}
-              aria-label="Game menu"
-            >
-              <Wordmark className="text-[24px]" />
-            </a>
-            <IconButton
-              icon={sound ? 'sound' : 'mute'}
-              label={sound ? 'Mute' : 'Sound on'}
-              keyHint="S"
-              bordered={false}
-              onClick={() => soundStore.set((v) => !v)}
-            />
-          </div>
-          <div className="relative aspect-square flex-none border-ink border-y-[1.5px] short:aspect-auto short:h-[clamp(100px,25dvh,180px)]">
-            {map('absolute inset-0')}
-            {legChip}
-          </div>
-          <ScrollArea cue="More checkpoints" className="px-4 pt-3 pb-3">
-            <span className="label">
-              {p.kind === 'course'
-                ? "Today's course"
-                : 'Checkpoints, any order'}
-            </span>
-            <CourseRows
-              points={p.points}
-              active={activeRow}
-              times={times}
-              live={p.kind === 'course' ? legSplit : null}
-            />
-          </ScrollArea>
-          <div className="flex flex-col gap-2 border-ink border-t-[1.5px] px-4 pt-3.5 pb-[calc(20px+var(--sab))]">
-            <div className="flex justify-between">
-              <span className="label">Your card</span>
-              <span className="num w-28 text-left text-[12px] text-pencil">
-                {clicks(r.clicks)} ·{' '}
-                {clock(p.kind === 'timed' ? left : time).padStart(5, '\u2007')}
-              </span>
-            </div>
-            {card}
-            <div className="grid grid-cols-[minmax(0,1fr)_44px] gap-2">
-              <PreviousArticle onClick={doBack} disabled={!canBack(r)} />
-              <IconButton
-                icon="find"
-                label="Find a link on this page"
-                onClick={toggleFind}
-              />
-            </div>
-            <button
-              type="button"
-              className="press min-h-11 text-[14px] underline decoration-rule underline-offset-2"
-              onClick={() => setLeaveOpen(true)}
-            >
-              Game menu
-            </button>
-          </div>
-        </aside>
-        <div className="flex min-w-0 flex-col">
-          {nextBar}
-          {readerPane('px-6 pt-6 pb-10 tab:px-10')}
-        </div>
-      </div>
-    );
-  } else {
-    layout = (
-      <div className="grid h-dvh grid-rows-[minmax(0,1fr)] grid-cols-[minmax(0,1.1fr)_minmax(560px,1fr)] overflow-hidden wide:grid-cols-[minmax(0,1.6fr)_minmax(640px,1fr)]">
-        <div className="relative border-ink border-r-[1.5px]">
-          {map('absolute inset-0')}
-          <div className="absolute top-6 left-6 w-85 border-[1.5px] border-ink bg-paper">
-            <div className="flex items-center justify-between border-ink border-b-[1.5px] p-2.5">
-              <a
-                href="/"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setLeaveOpen(true);
-                }}
-                aria-label="Game menu"
-              >
-                <Wordmark className="text-[22px]" />
-              </a>
-              <IconButton
-                icon={sound ? 'sound' : 'mute'}
-                label={sound ? 'Mute' : 'Sound on'}
-                keyHint="S"
-                bordered={false}
-                onClick={() => soundStore.set((v) => !v)}
-              />
-            </div>
-            <div className="px-3">
-              <CourseRows
-                points={p.points}
-                active={activeRow}
-                times={times}
-                live={p.kind === 'course' ? legSplit : null}
-                compact
-              />
-            </div>
-          </div>
-          <div className="absolute bottom-6 left-6 flex w-85 flex-col gap-2 border-[1.5px] border-ink bg-paper p-2.5">
-            <div className="flex justify-between">
-              <span className="label">Your card</span>
-              <span className="num w-28 text-left text-[12px] text-pencil">
-                {clicks(r.clicks)} ·{' '}
-                {clock(p.kind === 'timed' ? left : time).padStart(5, '\u2007')}
-              </span>
-            </div>
-            {card}
-            <button
-              type="button"
-              className="press min-h-11 text-[14px] underline decoration-rule underline-offset-2"
-              onClick={() => setLeaveOpen(true)}
-            >
-              Game menu
-            </button>
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-col">
-          {nextBar}
-          {readerPane('px-14 pt-9 pb-12')}
-          <div className="flex justify-end gap-3 border-rule border-t px-8 py-2.5 text-[12px] text-pencil">
-            <span>
-              <span className="kbd">Tab</span> moves through links ·{' '}
-              <span className="kbd">M</span> map ·{' '}
-              <span className="kbd">?</span> keys
-            </span>
-          </div>
-        </div>
-      </div>
+      </SplitLayout>
     );
   }
 
@@ -1009,6 +957,7 @@ function Playing({
             <button
               type="button"
               className="btn btn-kite press"
+              data-sound="handled"
               onClick={() => peek && follow(peek)}
             >
               <span className="truncate">

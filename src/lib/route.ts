@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react';
+import { flushSync } from 'react-dom';
+import { daily, dayKey, newSeed } from './course.ts';
 
 export type Route =
   | { name: 'home' }
@@ -38,32 +40,78 @@ function notify() {
   for (const l of listeners) l();
 }
 
-addEventListener('popstate', notify);
+let activeTransition: ViewTransition | null = null;
+let keyboardNavigation = false;
+addEventListener(
+  'pointerdown',
+  () => {
+    keyboardNavigation = false;
+  },
+  true,
+);
+addEventListener(
+  'keydown',
+  () => {
+    keyboardNavigation = true;
+  },
+  true,
+);
+
+export function shouldAnimateNavigation() {
+  return (
+    !keyboardNavigation &&
+    !matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function transition(update: () => void, animate = true) {
+  activeTransition?.skipTransition();
+  if (
+    !document.startViewTransition ||
+    !animate ||
+    !shouldAnimateNavigation() ||
+    document.hidden
+  ) {
+    update();
+    return;
+  }
+  const next = document.startViewTransition(() => {
+    flushSync(update);
+  });
+  activeTransition = next;
+  next.ready.catch(() => {});
+  next.updateCallbackDone.catch(() => {});
+  next.finished
+    .catch(() => {})
+    .then(() => {
+      if (activeTransition === next) activeTransition = null;
+    });
+}
+
+addEventListener('popstate', () => {
+  transition(notify, location.pathname !== seen);
+});
 
 export function navigate(path: string, replace = false) {
+  const destination = new URL(path, location.href);
+  if (destination.pathname === '/today')
+    destination.pathname = `/c/${daily(dayKey()).id}`;
+  if (destination.pathname === '/timed')
+    destination.pathname = `/c/t-${newSeed()}`;
   const go = () => {
-    history[replace ? 'replaceState' : 'pushState'](null, '', path);
+    history[replace ? 'replaceState' : 'pushState'](
+      null,
+      '',
+      `${destination.pathname}${destination.search}${destination.hash}`,
+    );
     scrollTo(0, 0);
     notify();
   };
-  const doc = document as Document & {
-    startViewTransition?: (fn: () => void) => {
-      ready: Promise<void>;
-      finished: Promise<void>;
-      updateCallbackDone: Promise<void>;
-    };
-  };
-  if (
-    !doc.startViewTransition ||
-    matchMedia('(prefers-reduced-motion: reduce)').matches
-  ) {
-    go();
-    return;
-  }
-  const t = doc.startViewTransition(go);
-  t.ready.catch(() => {});
-  t.finished.catch(() => {});
-  t.updateCallbackDone.catch(() => {});
+  transition(
+    go,
+    !['today', 'timed'].includes(read().name) &&
+      destination.pathname !== location.pathname,
+  );
 }
 
 export function useRoute() {
