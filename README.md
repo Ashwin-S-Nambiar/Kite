@@ -47,17 +47,17 @@ the screenshots show the current desktop, tablet and phone layouts with sample p
 
 ### keys
 
-| key | does |
-| --- | --- |
-| `Tab`, `Enter` | move through the links, go to one |
-| `F` | open or focus find in the current article |
-| `↑`, `↓` | previous or next match while using find |
+| key                    | does                                        |
+| ---------------------- | ------------------------------------------- |
+| `Tab`, `Enter`         | move through the links, go to one           |
+| `F`                    | open or focus find in the current article   |
+| `↑`, `↓`               | previous or next match while using find     |
 | `Enter`, `Shift+Enter` | next or previous match while typing in find |
-| `⌫` | previous article, adds one click |
-| `M` | open the map |
-| `S` | sound on or off |
-| `?` | all the keys |
-| `Esc` | close |
+| `⌫`                    | previous article, adds one click            |
+| `M`                    | open the map                                |
+| `S`                    | sound on or off                             |
+| `?`                    | all the keys                                |
+| `Esc`                  | close                                       |
 
 ## how the courses are made
 
@@ -99,17 +99,17 @@ the page is an orienteering map and a control card.
 
 ## the stack
 
-| layer | choices |
-| --- | --- |
-| app | react 19, typescript 7, vite 8 |
-| style | tailwind 4, hand drawn svg icons |
-| data | wikipedia page html and summary apis, called from the browser |
-| safety | dompurify on every article |
-| courses | `scripts/courses.ts` with linkedom, run ahead of time |
-| storage | localStorage for runs, cards, streak and sound |
-| offline | a service worker for the shell |
-| hosting | vercel |
-| tooling | biome, node's test runner |
+| layer   | choices                                                       |
+| ------- | ------------------------------------------------------------- |
+| app     | react 19, typescript 7, vite 8                                |
+| style   | tailwind 4, hand drawn svg icons                              |
+| data    | wikipedia page html and summary apis, called from the browser |
+| safety  | dompurify on every article                                    |
+| courses | `scripts/courses.ts` with linkedom, run ahead of time         |
+| storage | localStorage for runs, cards, streak and sound                |
+| offline | a service worker for the shell                                |
+| hosting | vercel                                                        |
+| tooling | biome, node's test runner                                     |
 
 ## running it
 
